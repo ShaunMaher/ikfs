@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+script_dir=$(dirname $(readlink -f "${0}"))
+source "${script_dir}/ikfs-common"
+
+function update_repository() {
+  local opwd=$(pwd)
+  local chroot_dir="${1}"
+  local this_repo_dir="${2}"
+  echo "this_repo_dir: ${this_repo_dir}"
+
+
+  cd "${this_repo_dir}"
+
+  mkdir -p "${this_repo_dir}/pool/main"
+  mkdir -p "${this_repo_dir}/pool/contrib"
+  mkdir -p "${this_repo_dir}/pool/non-free"
+  mkdir -p "${this_repo_dir}/dists/${os_codename}/main/binary-${os_cpu_alt_name}"
+  mkdir -p "${this_repo_dir}/dists/${os_codename}/contrib/binary-${os_cpu_alt_name}"
+  mkdir -p "${this_repo_dir}/dists/${os_codename}/non-free/binary-${os_cpu_alt_name}"
+  cp "${chroot_dir}/usr/src/"*.deb "${this_repo_dir}/pool/main/"
+
+  download_extras "${this_repo_dir}"
+
+  apt-ftparchive --arch ${os_cpu_alt_name} packages pool/main | \
+    tee ${this_repo_dir}/dists/${os_codename}/main/binary-${os_cpu_alt_name}/Packages | \
+    gzip -9 >${this_repo_dir}/dists/${os_codename}/main/binary-${os_cpu_alt_name}/Packages.gz
+  apt-ftparchive --arch ${os_cpu_alt_name} packages pool/contrib | \
+    tee ${this_repo_dir}/dists/${os_codename}/contrib/binary-${os_cpu_alt_name}/Packages | \
+    gzip -9 >${this_repo_dir}/dists/${os_codename}/contrib/binary-${os_cpu_alt_name}/Packages.gz
+  apt-ftparchive --arch ${os_cpu_alt_name} packages pool/non-free | \
+    tee ${this_repo_dir}/dists/${os_codename}/non-free/binary-${os_cpu_alt_name}/Packages | \
+    gzip -9 >${this_repo_dir}/dists/${os_codename}/non-free/binary-${os_cpu_alt_name}/Packages.gz
+
+  apt-ftparchive contents pool/main | \
+    tee ${this_repo_dir}/dists/${os_codename}/main/Contents-${os_cpu_alt_name} | \
+    gzip -9 >${this_repo_dir}/dists/${os_codename}/main/Contents-${os_cpu_alt_name}.gz
+  apt-ftparchive contents pool/contrib | \
+    tee ${this_repo_dir}/dists/${os_codename}/contrib/Contents-${os_cpu_alt_name} | \
+    gzip -9 >${this_repo_dir}/dists/${os_codename}/contrib/Contents-${os_cpu_alt_name}.gz
+  apt-ftparchive contents pool/non-free | \
+    tee ${this_repo_dir}/dists/${os_codename}/non-free/Contents-${os_cpu_alt_name} | \
+    gzip -9 >${this_repo_dir}/dists/${os_codename}/non-free/Contents-${os_cpu_alt_name}.gz
+
+  apt-ftparchive release dists/${os_codename}/main/binary-${os_cpu_alt_name}/ \
+    > ${this_repo_dir}/dists/${os_codename}/main/binary-${os_cpu_alt_name}/Release
+  apt-ftparchive release dists/${os_codename}/contrib/binary-${os_cpu_alt_name}/ \
+    > ${this_repo_dir}/dists/${os_codename}/contrib/binary-${os_cpu_alt_name}/Release
+  apt-ftparchive release dists/${os_codename}/non-free/binary-${os_cpu_alt_name}/ \
+    > ${this_repo_dir}/dists/${os_codename}/non-free/binary-${os_cpu_alt_name}/Release
+
+  apt-ftparchive -c ${script_dir}/apt.conf release dists/${os_codename} \
+    >${this_repo_dir}/dists/${os_codename}/Release
+
+  gpg -a --yes --output ${this_repo_dir}/dists/${os_codename}/Release.gpg --local-user "${gpg_signing_uid}" --detach-sign ${this_repo_dir}/dists/${os_codename}/Release
+  gpg -a --yes --clearsign --output ${this_repo_dir}/dists/${os_codename}/InRelease --local-user "${gpg_signing_uid}" --detach-sign ${this_repo_dir}/dists/${os_codename}/Release
+
+  gpg --export "${gpg_signing_uid}" >${this_repo_dir}/signing_key.gpg
+
+  cd "${opwd}"
+}

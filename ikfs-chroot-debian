@@ -1,0 +1,198 @@
+#!/usr/bin/env bash
+
+os_cpu=$(uname -p)
+build_depends="devscripts cpio bc build-essential libpci-dev libtool libssl-dev bison flex ${build_depends}"
+
+source "${script_dir}/ikfs-common"
+
+# Make sure the required special mounts exist within this chroot
+if [ ! -c /dev/zero ]; then
+  die "[ERROR] '/dev' does not appear to be mounted.  Cannot continue."
+fi
+if [ ! -d /sys/kernel ]; then
+  mount -t sysfs none /sys || \
+    die "[ERROR] unable to mount '/sys'.  Cannot continue."
+fi
+if [ ! -f /proc/uptime ]; then
+  mount -t proc none /proc || \
+    die "[ERROR] unable to mount '/proc'.  Cannot continue."
+fi
+if [ ! -c /dev/pts/0 ]; then
+  mount -t devpts none /dev/pts || \
+    die "[ERROR] unable to mount '/dev/pts'.  Cannot continue."
+fi
+
+function init_networking () {
+  echo "Creating a resolv.conf file that simply points to Google's public resolvers"
+  echo "nameserver 8.8.8.8" >>/etc/resolv.conf
+  echo "nameserver 8.8.4.4" >>/etc/resolv.conf
+}
+
+function install_all_os_updates () {
+  local result=0
+  echo "Installing all available system updates (within the chroot)"
+
+  # Silence messages about readline/dialog
+  export DEBIAN_FRONTEND=noninteractive
+
+  apt -y update >/dev/null || result=1
+
+  # The locale fudge we did in ikfs-chroot was only temporary.  This installs
+  #  the locales package, generates the desired locale and switches to it.
+  apt -y install locales >/dev/null
+  locale-gen en_AU.UTF-8
+  export LC_CTYPE="en_AU.UTF-8"
+  export LANG="en_AU.UTF-8"
+
+  # Install all available updates
+  apt -y dist-upgrade >/dev/null || result=1
+  return $result
+}
+
+function install_build_depends () {
+  local result=0
+  echo "Installing all build dependencies (within the chroot)"
+  apt -y install ${build_depends} >/dev/null || result=1
+  return $result
+}
+
+function download_kernel_source () {
+  return 0
+}
+
+function apply_local_patches () {
+  readarray -t patches < <( \
+    ( \
+      find "${script_dir}/patches/linux/arch-all/version-all" -mindepth 1 2>/dev/null ; \
+      find "${script_dir}/patches/linux/arch-all/${kernel_version}/" -mindepth 1 2>/dev/null ; \
+      find "${script_dir}/patches/linux/arch-all/${kernel_version_major}.${kernel_version_minor}/" -mindepth 1 2>/dev/null; \
+      find "${script_dir}/patches/linux/arch-${os_cpu}/version-all" -mindepth 1 2>/dev/null ; \
+      find "${script_dir}/patches/linux/arch-${os_cpu}/${kernel_version}/" -mindepth 1 2>/dev/null ; \
+      find "${script_dir}/patches/linux/arch-${os_cpu}/${kernel_version_major}.${kernel_version_minor}/" -mindepth 1 2>/dev/null \
+    ) | sort \
+  )
+  cd "${kernel_src_dir}"
+  for patch in "${patches[@]}"; do
+    echo "Applying local kernel patch: '${patch}'"
+    # Some of the patches have version numbers that we need to sub in
+    sed -i "s/{abi_version}/${abi_version}/g" ${patch}
+    sed -i "s/{zfs_version}/${zfs_version}/g" ${patch}
+
+    patch -p 1 -i "${patch}" || return 1
+  done
+
+  if [ -d "${kernel_src_dir}/.git" ]; then
+    git add .
+    git commit -m "Local patches applied"
+  fi
+  return 0
+}
+
+function copy_signing_key () {
+  if [ -f "${script_dir}/signing_key.pem" ]; then
+    cp "${script_dir}/signing_key.pem" "${kernel_src_dir}/certs/" || return 1
+
+    #if [ -f "${script_dir}/signing_key.x509" ]; then
+    #  cp "${script_dir}/signing_key.x509" "${kernel_src_dir}/certs/" || return 1
+
+      if [ -f "${script_dir}/x509.genkey" ]; then
+        cp "${script_dir}/x509.genkey" "${kernel_src_dir}/certs/" || return 1
+        return 0
+      else
+        echo "'${script_dir}/x509.genkey' is missing.  Kernel and module signing might be unreliable."
+      fi
+    #else
+    #  echo "'${script_dir}/signing_key.x509' is missing.  Kernel and module signing might be unreliable."
+    #fi
+  fi
+  return 1
+}
+
+function configure_kernel () {
+  echo "TODO: make oldconfig? How do we import the current systems settings?"
+
+  # From: https://wiki.ubuntu.com/Kernel/BuildYourOwnKernel
+  cd ${kernel_src_dir}
+  chmod a+x debian/rules
+  chmod a+x debian/scripts/*
+  chmod a+x debian/scripts/misc/*
+  fakeroot debian/rules clean
+
+  # I think that "defaultconfigs" does a similar job to "editconfigs" but is
+  #  non-interactive
+  #fakeroot debian/rules editconfigs
+  fakeroot debian/rules defaultconfigs
+
+  # Is it worth doing/having an option to do something like this:
+  #  https://www.linuxquestions.org/questions/slackware-14/how-to-compile-kernel-with-only-needed-drivers-881776/
+  #  that builds a kernel with only the drivers for the hardware you have in
+  #  order to create a smaller/more efficient (smaller, any other advantages?)
+  #  image?
+
+  return 0
+}
+
+function build_kernel_package () {
+  # Read this so we can sign our kernel for SecureBoot
+  #  https://blog.ubuntu.com/2017/08/11/how-to-sign-things-for-secure-boot
+  #  https://wiki.ubuntu.com/UEFI/SecureBoot
+
+  # From: https://wiki.ubuntu.com/Kernel/BuildYourOwnKernel
+  cd ${kernel_src_dir}
+  fakeroot debian/rules clean || return 1
+  touch .scmversion
+  fakeroot debian/rules binary-headers binary-generic binary-perarch || return 1
+  return 0
+}
+
+function install_kernel_packages () {
+  return 0
+}
+
+function build_zfs_dkms_package () {
+  #TODO: Instead of creating this function, the Debian/Ubuntu kernel build
+  #  scripts already build the Nvidia and ZFS DKMS packages and include the built
+  #  module in the kernel-modules-extra package.  The advantage here is that
+  #  the modules get signed with the key installed into the kernel automatically.
+
+  # This function probably should, therefore, patch the list of DKMS packages to
+  #  be built rather than building anything.
+  return 0
+}
+
+function build_dkms_packages () {
+  build_zfs_dkms_package || return 1
+  return 0
+}
+
+# If we have been sourced from another file, don't run any of the following
+if [ $0 != $BASH_SOURCE ]; then
+  return 0
+fi
+
+init_networking || \
+  die "[ERROR] Unable to get working network connectivity within the chroot environment.  Cannot continue."
+
+install_all_os_updates || \
+  warn "[WARN] Failed to install latest updates into chrooted OS.  Some important security updates may not be applied."
+
+install_build_depends || \
+  die "[ERROR] Failed to install build dependencies.  Cannot continue."
+
+download_kernel_source || \
+  die "[ERROR] Failed to download the kernel source.  Cannot continue."
+
+apply_local_patches || \
+  die "[ERROR] Failed to apply local patches.  Cannot continue."
+
+configure_kernel || \
+  die "[ERROR] Failed to configure the kernel for building.  Cannot continue."
+
+build_kernel_package || \
+  die "[ERROR] Failed to build the kernel.  Cannot continue."
+
+install_kernel_packages || \
+  die "[ERROR] Failed to install the built kernel packages.  Cannot continue."
+
+build_dkms_packages || \
+  die "[ERROR] Failed to build the additional kernel module packages from dkms.  Cannot continue."

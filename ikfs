@@ -1,0 +1,179 @@
+#!/usr/bin/env bash
+
+#TODO: In the future, expand the code to call sudo for the specific commands
+# that need su priviledges.  This would allow an administrator to grant the user
+# that executes this script sudo access for only this limited subset of
+# commands.  Until we implement this, we need to be executed as root (or with
+# sudo)
+if [ ! "${USER}" == "root" ]; then
+  echo "This script must be executed as the root user or with sudo." >&2
+  exit 1
+fi
+
+os_name="ubuntu"
+os_cpu="${os_cpu:-$(uname -p)}"
+os_codename=$(lsb_release -c | awk '{print $2}')
+os_release=$(lsb_release -r | awk '{print $2}')
+kernel_codename="${os_codename}"
+tmp_dir=$(mktemp -d /tmp/ikfs.XXXXXXXXXX)
+#tmp_dir="/tmp/ikfs.CpFZwGpsRE"
+script_dir=$(dirname $(readlink -f "${0}"))
+repository_dir="${script_dir}/repository"
+local_patches_dir="${script_dir}/patches"
+chroot_template_dir="${script_dir}/templates/chroot"
+chroot_template_name="ikfs-${os_codename}-${os_cpu}.tgz"
+chroot_dir="${tmp_dir}/chroot/"
+gpg_signing_uid="shaun@ghanima.net"
+
+source "ikfs-common"
+
+echo "Using temp directory: '${tmp_dir}'"
+echo "Kernel codename: '${kernel_codename}'"
+echo "CPU Alt Name: '${os_cpu_alt_name}'"
+
+function download_base_rootfs () {
+  if [ "${os_name}" = "ubuntu" ]; then
+    download_ubuntu_base_rootfs
+    return $?
+  fi
+
+  # TODO: Expand to other distros?
+  return 1
+}
+
+function download_ubuntu_base_rootfs () {
+  wget -O "${chroot_template_dir}/${chroot_template_name}" "http://cdimage.ubuntu.com/ubuntu-base/releases/${os_codename}/release/ubuntu-base-${os_release}-base-${os_cpu_alt_name}.tar.gz"
+  return $?
+}
+
+function download_extras () {
+  if [ "${os_name}" = "ubuntu" ]; then
+    download_ubuntu_extras "${1}"
+    return $?
+  fi
+
+  # TODO: Expand to other distros?
+  return 1
+}
+
+function download_ubuntu_extras () {
+  # local this_repo_dir="${1}"
+  # echo "this_repo_dir: ${this_repo_dir}"
+  #
+  # # We need to know the version of the zfs packages we're going to download
+  # zfs_version=$(
+  #   wget -q -O- http://http.us.debian.org/debian/dists/experimental/contrib/source/Sources.xz | \
+  #   xz -d | \
+  #   awk '{ if (/^Package: zfs-linux/) { section=1 } else if (/^Package: /) {section=0}; if (section>0 && /^Version: /) {print $2}}' \
+  # )
+  # echo "The current experimental ZFS package in the Debian repository is version: '${zfs_version}'"
+  #
+  # # Grab some additional upstream packages from Debian and add them to our local repo
+  #
+  # # Grab the latest upstream (Debian) versions of the ZFS userspace tools
+  # wget -O "${this_repo_dir}/pool/contrib/libnvpair1linux_${zfs_version}_${os_cpu_alt_name}.deb" \
+  #   "http://http.us.debian.org/debian/pool/contrib/z/zfs-linux/libnvpair1linux_${zfs_version}_${os_cpu_alt_name}.deb"
+  # wget -O "${this_repo_dir}/pool/contrib/libuutil1linux_${zfs_version}_${os_cpu_alt_name}.deb" \
+  #   "http://http.us.debian.org/debian/pool/contrib/z/zfs-linux/libuutil1linux_${zfs_version}_${os_cpu_alt_name}.deb"
+  # wget -O "${this_repo_dir}/pool/contrib/libzfs2linux_${zfs_version}_${os_cpu_alt_name}.deb" \
+  #   "http://http.us.debian.org/debian/pool/contrib/z/zfs-linux/libzfs2linux_${zfs_version}_${os_cpu_alt_name}.deb"
+  # wget -O "${this_repo_dir}/pool/contrib/libzpool2linux_${zfs_version}_${os_cpu_alt_name}.deb" \
+  #   "http://http.us.debian.org/debian/pool/contrib/z/zfs-linux/libzpool2linux_${zfs_version}_${os_cpu_alt_name}.deb"
+  # wget -O "${this_repo_dir}/pool/contrib/zfs-initramfs_${zfs_version}_all.deb" \
+  #   "http://http.us.debian.org/debian/pool/contrib/z/zfs-linux/zfs-initramfs_${zfs_version}_all.deb"
+  # wget -O "${this_repo_dir}/pool/contrib/zfsutils-linux_${zfs_version}_${os_cpu_alt_name}.deb" \
+  #   "http://http.us.debian.org/debian/pool/contrib/z/zfs-linux/zfsutils-linux_${zfs_version}_${os_cpu_alt_name}.deb"
+  # wget -O "${this_repo_dir}/pool/contrib/zfs-zed_${zfs_version}_${os_cpu_alt_name}.deb" \
+  #   "http://http.us.debian.org/debian/pool/contrib/z/zfs-linux/zfs-zed_${zfs_version}_${os_cpu_alt_name}.deb"
+  # wget -O "${this_repo_dir}/pool/contrib/zfs-dkms_${zfs_version}_all.deb" \
+  #   "http://http.us.debian.org/debian/pool/contrib/z/zfs-linux/zfs-dkms_${zfs_version}_all.deb"
+  #
+  # # libc6 (this one seems like a bad idea) - Yep.  Bad idea.
+  # wget -O "${this_repo_dir}/pool/main/libc6_2.28-10_${os_cpu_alt_name}.deb" \
+  #   "http://ftp.us.debian.org/debian/pool/main/g/glibc/libc6_2.28-10_${os_cpu_alt_name}.deb"
+  # wget -O "${this_repo_dir}/pool/main/libc-bin_2.28-10_${os_cpu_alt_name}.deb" \
+  #   "http://http.us.debian.org/debian/pool/main/g/glibc/libc-bin_2.28-10_${os_cpu_alt_name}.deb"
+  true
+}
+
+function cleanup () {
+  echo "TODO: Safely remove '${tmp_dir}'."
+  if [ -d "${tmp_dir}/chroot" ]; then
+    if [ -d "${tmp_dir}/chroot/dev" ]; then
+      if [ -d "${tmp_dir}/chroot/dev/pts" ]; then
+        umount "${tmp_dir}/chroot/dev/pts" 2>/dev/null
+      fi
+      umount "${tmp_dir}/chroot/dev" 2>/dev/null
+    fi
+    if [ -d "${tmp_dir}/chroot/proc" ]; then
+      umount "${tmp_dir}/chroot/proc" 2>/dev/null
+    fi
+    if [ -d "${tmp_dir}/chroot/sys" ]; then
+      umount "${tmp_dir}/chroot/sys" 2>/dev/null
+    fi
+    rm -fr "${tmp_dir}/chroot"
+  fi
+  rm -fr "${tmp_dir}/"
+}
+
+mkdir -p "${chroot_template_dir}/"
+mkdir -p "${chroot_dir}/"
+if [ ! -f "${chroot_template_dir}/${chroot_template_name}" ]; then
+  echo "Downloading a base image to use as a chroot rootfs..."
+  download_base_rootfs
+  if [ ! $? = 0 ]; then
+    echo "Failed to download base image."
+  fi
+fi
+
+echo "Extracting base image from template '${chroot_template_name}'..."
+tar -C "${chroot_dir}/" -xzf "${chroot_template_dir}/${chroot_template_name}" || die "Failed to extract base image from template file '${chroot_template_dir}/${chroot_template_name}'."
+
+echo "Mounting special filesystems in chroot..."
+mount --bind /dev "${chroot_dir}/dev/" || die "Failed to mount '/dev' within the chroot.  Possible permissions issue?  Did you execute this script with sudo?"
+
+echo "Copying scripts into chroot..."
+mkdir -p "${chroot_dir}/tmp/ikfs/" || die "Failed to create a temporary directory in the chroot for scripts."
+(tar -c --exclude="templates/*" --exclude="tmp/*" --exclude="repository/*" -C "${script_dir}" * | tar -v -C "${chroot_dir}/tmp/ikfs/" -x) || die "Failed to copy scripts to chroot directory"
+
+if [ -f "${script_dir}/signing_key.pem.gpg" ]; then
+  echo "Decrypting and extracting the Linux kernel signing key into the chroot"
+  gpg -a --yes --output ${chroot_dir}/tmp/ikfs/signing_key.pem --decrypt signing_key.pem.gpg
+else
+  echo "No Linux kernel signing key was found.  One will be automatically generated.  If you need a signed kernel and modules for Secure Boot, please review the README.md file for instructions for creating a static signing key."
+fi
+
+echo "Executing ikfs-chroot in the chroot environment"
+chroot "${chroot_dir}/" /bin/bash /tmp/ikfs/ikfs-chroot \
+  --os-name="${os_name}" \
+  --kernel-codename="${kernel_codename}" \
+  --kernel-git-branch="${kernel_git_branch}" \
+  --os-cpu="${os_cpu}" \
+  --os-codename="${os_codename}" || \
+  die "A process withing the chroot failed.  See the above output for more information."
+
+#TODO: Signing kernel and modules
+# *I think* you might simply be able to drop a signing_key.pem and TODO into the
+#  certs directory in the root of the kernel source tree
+# https://kernel.ubuntu.com/git/ubuntu/ubuntu-disco.git/tree/certs/Makefile line ~58
+# https://kernel.ubuntu.com/git/ubuntu/ubuntu-disco.git/tree/debian/rules.d/2-binary-arch.mk line 56, 106, 287
+# How do I generate some signing keys though and store them securly while still
+#  allowing this process to be automated?
+
+#TODO: We need a patch to
+#  * Change the maintainer name and email address.  We should not give the
+#    impression that Canonical are responsible for our kernels
+#    see: https://manpages.debian.org/jessie/devscripts/dch.1.en.html
+#  * Replace "generic" with "personal" (or something)
+
+# Result is in "${chroot_dir}/usr/src/*.deb"
+this_repo_dir="${repository_dir}/${os_name}"
+if [ -f "${script_dir}/ikfs-repo-${os_name}" ]; then
+  echo "Calling on script 'ikfs-repo-${os_name}' to update the local repository"
+  source "${script_dir}/ikfs-repo-${os_name}"
+  update_repository "${chroot_dir}" "${this_repo_dir}"
+else
+  echo "A helper script for updating ${os_name} repositories doesn't exist yet.  Sorry."
+fi
+
+# cleanup

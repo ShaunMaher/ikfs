@@ -1,0 +1,25 @@
+diff -ruN '--exclude=*git*' ../ubuntu-disco.orig/debian/scripts/dkms-build ./debian/scripts/dkms-build
+--- ../ubuntu-disco.orig/debian/scripts/dkms-build	2019-06-18 17:34:19.000000000 +1000
++++ ./debian/scripts/dkms-build	2019-07-08 19:49:39.607086195 +1000
+@@ -138,6 +138,21 @@
+ pkgdir="$pkgdir/$package"
+ echo "II: dkms-build installing $package into $pkgdir"
+ install -d "$pkgdir"
++
++echo "II: SM: Dodgy hack.  signing_key.pem exists in the kernel build tree but not in this dkms build directory.  I can't work out why.  In lieu of a correct solution, I'm going to copy the missing file now."
++echo "dkms_dir\t\t${dkms_dir}"
++echo "dkms_package\t\t${dkms_package}"
++echo "pkgdir\t\t${pkgdir}"
++if [ ! -f "/usr/src/linux/debian/build/build-generic/certs/signing_key.pem" ]; then
++	if [ -f "/usr/src/linux/certs/signing_key.pem" ]; then
++		cp "/usr/src/linux/certs/signing_key.pem" "/usr/src/linux/debian/build/build-generic/certs/signing_key.pem"
++	else
++		echo "Crud.  I couldn't find signing_key.pem in the kernel source tree either."
++	fi
++else
++	echo "Oh.  The file does exist.  My mistake."
++fi
++
+ find "$dkms_dir/build/$dkms_package/$dkms_version/$abi_version" -name \*.ko |
+ while read module; do
+ 	vmodule=$( basename "$module" )

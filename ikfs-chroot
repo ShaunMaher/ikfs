@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+os_name="${os_name:-ubuntu}"
+os_cpu=$(uname -p)
+if [ "$(which lsb_release)" == "" ]; then
+  if [ -f /etc/lsb-release ]; then
+    os_codename=$(cat /etc/lsb-release | grep 'DISTRIB_CODENAME' | \
+      awk 'BEGIN{FS="="}{print $2}')
+    os_release=$(cat /etc/lsb-release | grep 'DISTRIB_RELEASE' | \
+      awk 'BEGIN{FS="="}{print $2}')
+  else
+    echo "Neither the lsb_release command or the lsb-release file was found.  Cannot continue (unless someone expands the logic in "$(basename $0)")."
+    exit 1
+  fi
+else
+  os_codename=$(lsb_release -c | awk '{print $2}')
+  os_release=$(lsb_release -r | awk '{print $2}')
+fi
+tmp_dir=$(mktemp -d)
+script_dir=$(dirname $(readlink -f "${0}"))
+local_patches_dir="${script_dir}/patches"
+
+source "${script_dir}/ikfs-common"
+echo "Kernel codename: '${kernel_codename}'"
+
+# This silences some locale warnings
+export LC_CTYPE="C"
+export LANG="C"
+
+cd "${script_dir}"
+if [ -f "${script_dir}/ikfs-chroot-${os_name}" ]; then
+  echo "Executing script '${script_dir}/ikfs-chroot-${os_name}'"
+  export os_name
+  export os_cpu
+  export os_codename
+  export os_release
+  export kernel_codename
+  export kernel_git_branch
+  "${script_dir}/ikfs-chroot-${os_name}"
+fi

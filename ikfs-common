@@ -1,0 +1,105 @@
+function warn () {
+  echo "${@}"
+}
+
+function die () {
+  echo "${@}" 1>&2
+  exit 1
+}
+
+function usage () {
+  echo "TODO: Write Usage information"
+}
+
+# Command line argument processing
+# We will try to use the same variable names and command line argument names
+#  across the board so we can use this shared code for all argument processing.
+# Very creative use of bash to support long argument names (not nativly
+#  supported) care of Arvid Requate via
+#  https://stackoverflow.com/questions/402377/using-getopts-to-process-long-and-short-command-line-options/7680682#7680682
+while getopts ":a:k:l:-:" opt; do
+  case "${opt}" in
+    -)
+      case "${OPTARG}" in
+        arch|cpu|cpu-arch|cpu_arch|os-cpu|os_cpu)
+          os_cpu="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
+          ;;
+        arch=*|cpu=*|cpu-arch=*|cpu_arch=*|os-cpu=*|os_cpu=*)
+          os_cpu=${OPTARG#*=}
+          opt=${OPTARG%=$os_cpu}
+          ;;
+        osname|os-name|os_name)
+          os_name="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
+          ;;
+        osname=*|os-name=*|os_name=*)
+          os_name=${OPTARG#*=}
+          opt=${OPTARG%=$os_name}
+          ;;
+        oscodename|os-codename|os_codename)
+          os_codename="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
+          ;;
+        oscodename=*|os-codename=*|os_codename=*)
+          os_codename=${OPTARG#*=}
+          opt=${OPTARG%=$os_codename}
+          ;;
+        kernelcodename|kernel-codename|kernel_codename)
+          kernel_codename="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
+          ;;
+        kernelcodename=*|kernel-codename=*|kernel_codename=*)
+          kernel_codename=${OPTARG#*=}
+          opt=${OPTARG%=$kernel_codename}
+          ;;
+        kernelgitbranch|kernel-git-branch|kernel_git_branch)
+          kernel_git_branch="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
+          ;;
+        kernelgitbranch=*|kernel-git-branch=*|kernel_git_branch=*)
+          kernel_git_branch=${OPTARG#*=}
+          opt=${OPTARG%=$kernel_git_branch}
+          ;;
+        log|log-file|log_file)
+          logfile="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
+          ;;
+        log=*|log-file=*|log_file=*)
+          logfile=${OPTARG#*=}
+          opt=${OPTARG%=$logfile}
+          ;;
+        help|usage)
+          usage
+          exit 0
+          ;;
+        *)
+          if [ "$OPTERR" = 1 ] && [ "${optspec:0:1}" != ":" ]; then
+            echo "Unknown option --${OPTARG}" >&2
+          fi
+          ;;
+      esac
+      ;;
+    a)
+      os_cpu="${OPTARG}"
+      ;;
+    k)
+      kernel_codename="${OPTARG}"
+      ;;
+    l)
+      logfile="${OPTARG}"
+      ;;
+    *)
+      if [ "$OPTERR" != 1 ] || [ "${optspec:0:1}" = ":" ]; then
+        echo "Non-option argument: '-${OPTARG}'" >&2
+      fi
+      ;;
+  esac
+done
+
+# Turn x68_64 into amd64, etc.
+case "${os_cpu}" in
+  "x86")
+    os_cpu_alt_name="i386"
+    ;;
+  "x86_64")
+    os_cpu_alt_name="amd64"
+    ;;
+  "arm64")
+    os_cpu_alt_name="arm64"
+    ;;
+esac
