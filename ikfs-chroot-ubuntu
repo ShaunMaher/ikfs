@@ -36,7 +36,9 @@ function download_kernel_source () {
   zfs_version=$(
     wget -q -O- http://http.us.debian.org/debian/dists/experimental/contrib/source/Sources.xz | \
     xz -d | \
-    awk '{ if (/^Package: zfs-linux/) { section=1 } else if (/^Package: /) {section=0}; if (section>0 && /^Version: /) {print $2}}' \
+    awk '{ if (/^Package: zfs-linux/) { section=1 } else if (/^Package: /) {section=0}; if (section>0 && /^Version: /) {print $2}}' | \
+    sort -n | \
+    tail -1
   )
   echo "The current experimental ZFS package in the Debian repository is version: '${zfs_version}'"
 }
@@ -59,12 +61,14 @@ function build_extra_package () {
 
   # Extract just the section of the Sources file that relates to the package
   #  we're dealing with
-  cat /tmp/Sources | awk "{ if (/^Package: ${source_package_name}/) { section=1 } else if (/^Package: /) {section=0}; if (section>0) {print \$0}}" \
+  cat /tmp/Sources | awk "{ if (/^Package: ${source_package_name}/) { lines=\"\"; section=1 } else if (/^Package: /) {section=0}; if (section>0) {lines=lines\"\n\"\$0}}END{print lines}" \
     >/tmp/Sources_${source_package_name}
 
   # Get the package version
   local package_version=$( \
-    cat /tmp/Sources_${source_package_name} | awk '{if (/^Version: /) {print $2}}' \
+    cat /tmp/Sources_${source_package_name} | awk '{if (/^Version: /) {print $2}}' | \
+    sort -n | \
+    tail -1
   )
   echo "The current experimental ZFS package in the Debian repository is version: '${package_version}'"
 

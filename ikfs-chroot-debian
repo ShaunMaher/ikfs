@@ -74,6 +74,8 @@ function apply_local_patches () {
   cd "${kernel_src_dir}"
   for patch in "${patches[@]}"; do
     echo "Applying local kernel patch: '${patch}'"
+    compgen -v
+    echo "zfs_version: '${zfs_version}'"
     # Some of the patches have version numbers that we need to sub in
     sed -i "s/{abi_version}/${abi_version}/g" ${patch}
     sed -i "s/{zfs_version}/${zfs_version}/g" ${patch}
