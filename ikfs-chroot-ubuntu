@@ -116,7 +116,7 @@ function build_extra_package () {
       # Install build dependencies
       # Reference: https://www.v13.gr/blog/?p=364
       echo "Installing build dependencies as described in '${file_name}'"
-      mk-build-deps -i "${file_name}"
+      yes | mk-build-deps -i "${file_name}"
     fi
   done
 

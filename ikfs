@@ -116,6 +116,9 @@ function cleanup () {
   rm -fr "${tmp_dir}/"
 }
 
+# Start gpg-agent
+gpg-agent --homedir /home/work/.gnupg --use-standard-socket --daemon --default-cache-ttl 86400
+
 mkdir -p "${chroot_template_dir}/"
 mkdir -p "${chroot_dir}/"
 if [ ! -f "${chroot_template_dir}/${chroot_template_name}" ]; then

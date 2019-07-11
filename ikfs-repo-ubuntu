@@ -9,15 +9,13 @@ function update_repository() {
   local this_repo_dir="${2}"
   echo "this_repo_dir: ${this_repo_dir}"
 
-
-  cd "${this_repo_dir}"
-
   mkdir -p "${this_repo_dir}/pool/main"
   mkdir -p "${this_repo_dir}/pool/contrib"
   mkdir -p "${this_repo_dir}/pool/non-free"
   mkdir -p "${this_repo_dir}/dists/${os_codename}/main/binary-${os_cpu_alt_name}"
   mkdir -p "${this_repo_dir}/dists/${os_codename}/contrib/binary-${os_cpu_alt_name}"
   mkdir -p "${this_repo_dir}/dists/${os_codename}/non-free/binary-${os_cpu_alt_name}"
+  cd "${this_repo_dir}"
   cp "${chroot_dir}/usr/src/"*.deb "${this_repo_dir}/pool/main/"
 
   download_extras "${this_repo_dir}"
