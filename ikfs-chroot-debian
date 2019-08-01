@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
 
-os_cpu=$(uname -p)
+os_cpu="${os_cpu:-$(uname -p)}"
+build_cpu="${build_cpu:-$(uname -p)}"
 build_depends="devscripts cpio bc build-essential libpci-dev libtool libssl-dev bison flex ${build_depends}"
 
 source "${script_dir}/ikfs-common"
+
+# If crosscompiling aarch64 (arm64): gcc-aarch64-linux-gnu
+if [ ! "${build_cpu}" = "${os_cpu}" ]; then
+  echo "Cross Compiling for '${os_cpu}' on '${build_cpu}'.  Will install additional package 'gcc-${os_cpu_alt_name}-linux-gnu'."
+  build_depends="${build_depends} gcc-${os_cpu_alt_name}-linux-gnu"
+fi
 
 # Make sure the required special mounts exist within this chroot
 if [ ! -c /dev/zero ]; then
@@ -74,7 +81,7 @@ function apply_local_patches () {
   cd "${kernel_src_dir}"
   for patch in "${patches[@]}"; do
     echo "Applying local kernel patch: '${patch}'"
-    compgen -v
+    #compgen -v
     echo "zfs_version: '${zfs_version}'"
     # Some of the patches have version numbers that we need to sub in
     sed -i "s/{abi_version}/${abi_version}/g" ${patch}
@@ -112,6 +119,10 @@ function copy_signing_key () {
 
 function configure_kernel () {
   echo "TODO: make oldconfig? How do we import the current systems settings?"
+
+  # If crosscompiling from amd64 to aarch64
+  export CROSS_COMPILE=aarch64-linux-gnu-
+  export $(dpkg-architecture -a${os_cpu})
 
   # From: https://wiki.ubuntu.com/Kernel/BuildYourOwnKernel
   cd ${kernel_src_dir}

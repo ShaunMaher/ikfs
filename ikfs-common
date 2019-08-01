@@ -93,13 +93,16 @@ done
 
 # Turn x68_64 into amd64, etc.
 case "${os_cpu}" in
-  "x86")
+  x86|i386)
+    os_cpu="x86"
     os_cpu_alt_name="i386"
     ;;
-  "x86_64")
+  x86_64|amd64)
+    os_cpu="x86_64"
     os_cpu_alt_name="amd64"
     ;;
-  "arm64")
-    os_cpu_alt_name="arm64"
+  arm64|aarch64)
+    os_cpu="arm64"
+    os_cpu_alt_name="aarch64"
     ;;
 esac
