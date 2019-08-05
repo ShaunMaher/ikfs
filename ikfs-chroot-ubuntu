@@ -7,6 +7,7 @@ build_depends="equivs dkms wget kmod libelf-dev kernel-wedge rsync gawk debhelpe
 script_dir=$(dirname $(readlink -f "${0}"))
 kernel_git_branch="${kernel_git_branch:-master}"
 kernel_src_dir=/usr/src/linux
+kernel_name_suffix="${kernel_name_suffix:-generic}"
 
 source "${script_dir}/ikfs-common"
 
@@ -33,6 +34,17 @@ function download_kernel_source () {
   abi_version=$(basename $(find ./debian.master/abi -maxdepth 1 -mindepth 1 -type d))
   echo "The abi version of the downloaded source: '${abi_version}'"
 
+  # Update the changelog to add our own contact details
+  DEBFULLNAME="${kernel_builders_name}"
+  export DEBFULLNAME
+  dch --changelog debian.master/changelog --newversion "${kernel_version}" --distribution "${os_codename}"  --noquery "Personal build with modifications from upstream"
+
+  # Change "generic" to something more personal
+  if [ ! "${kernel_name_suffix}" = "generic" ]; then
+    cp "debian.master/config/config.flavour.generic" "debian.master/config/config.flavour.${kernel_name_suffix}"
+    sed -i "s/[[:space:]]generic[[:space:]]/\t${kernel_name_suffix}\t/g" debian.master/d-i/kernel-versions
+  fi
+
   zfs_version=$(
     wget -q -O- http://http.us.debian.org/debian/dists/experimental/contrib/source/Sources.xz | \
     xz -d | \
@@ -58,7 +70,8 @@ function download_kernel_source () {
 }
 
 function build_extra_packages () {
-  build_extra_package "zfs-linux" "experimental/contrib"
+  build_extra_package "zfs-linux" "experimental/contrib" || \
+    build_extra_package "zfs-linux" "unstable/contrib" || return 1
 }
 
 function build_extra_package () {
@@ -84,7 +97,12 @@ function build_extra_package () {
     sort -n | \
     tail -1
   )
-  echo "The current experimental ZFS package in the Debian repository is version: '${package_version}'"
+  if [ "${package_version}" = "" ]; then
+    echo "Cannot find the latest '${source_package_repo}/${source_package_name}' source package."
+    return 1
+  else
+    echo "The current '${source_package_repo}/${source_package_name}' package in the Debian repository is version: '${package_version}'"
+  fi
 
   # Get the directory within the repository that we will need to download from
   local repo_directory=$( \
@@ -136,7 +154,11 @@ function build_extra_package () {
 
   # Start the build and package process
   # Reference: https://wiki.debian.org/HowToPackageForDebian#Building_Debian_packages
-  debuild -i -us -uc -b
+  if [ "${build_cpu}" = "${os_cpu}" ]; then
+    debuild -i -us -uc -b
+  else
+    debuild -i -us -uc -b -a${os_cpu}
+  fi
 }
 
 # If we have been sourced from another file, don't run anything that follows

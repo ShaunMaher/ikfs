@@ -10,22 +10,32 @@ if [ ! "${USER}" == "root" ]; then
   exit 1
 fi
 
-os_name="ubuntu"
+ikfs_starttime=$(date +%s)
+os_name="${os_name:-ubuntu}"
 os_cpu="${os_cpu:-$(uname -p)}"
+build_cpu="${build_cpu:-$(uname -p)}"
 os_codename=$(lsb_release -c | awk '{print $2}')
 os_release=$(lsb_release -r | awk '{print $2}')
 kernel_codename="${os_codename}"
+kernel_builders_name="${kernel_builders_name:-${SUDO_USER:-${USER}}} <${kernel_builders_name:-${SUDO_USER:-${USER}}}@$(hostname -f)>"
+
+source "ikfs-common"
+
 tmp_dir=$(mktemp -d /tmp/ikfs.XXXXXXXXXX)
 #tmp_dir="/tmp/ikfs.CpFZwGpsRE"
 script_dir=$(dirname $(readlink -f "${0}"))
 repository_dir="${script_dir}/repository"
 local_patches_dir="${script_dir}/patches"
 chroot_template_dir="${script_dir}/templates/chroot"
+
+# For native compile:
+#chroot_template_name="ikfs-${os_codename}-${build_cpu}.tgz"
+
+# For Cross Compile:
 chroot_template_name="ikfs-${os_codename}-${os_cpu}.tgz"
+
 chroot_dir="${tmp_dir}/chroot/"
 gpg_signing_uid="shaun@ghanima.net"
-
-source "ikfs-common"
 
 echo "Using temp directory: '${tmp_dir}'"
 echo "Kernel codename: '${kernel_codename}'"
@@ -42,6 +52,10 @@ function download_base_rootfs () {
 }
 
 function download_ubuntu_base_rootfs () {
+  # For native compile:
+  #wget -O "${chroot_template_dir}/${chroot_template_name}" "http://cdimage.ubuntu.com/ubuntu-base/releases/${os_codename}/release/ubuntu-base-${os_release}-base-${build_cpu}.tar.gz"
+
+  # For Cross Compile:
   wget -O "${chroot_template_dir}/${chroot_template_name}" "http://cdimage.ubuntu.com/ubuntu-base/releases/${os_codename}/release/ubuntu-base-${os_release}-base-${os_cpu_alt_name}.tar.gz"
   return $?
 }
@@ -57,42 +71,6 @@ function download_extras () {
 }
 
 function download_ubuntu_extras () {
-  # local this_repo_dir="${1}"
-  # echo "this_repo_dir: ${this_repo_dir}"
-  #
-  # # We need to know the version of the zfs packages we're going to download
-  # zfs_version=$(
-  #   wget -q -O- http://http.us.debian.org/debian/dists/experimental/contrib/source/Sources.xz | \
-  #   xz -d | \
-  #   awk '{ if (/^Package: zfs-linux/) { section=1 } else if (/^Package: /) {section=0}; if (section>0 && /^Version: /) {print $2}}' \
-  # )
-  # echo "The current experimental ZFS package in the Debian repository is version: '${zfs_version}'"
-  #
-  # # Grab some additional upstream packages from Debian and add them to our local repo
-  #
-  # # Grab the latest upstream (Debian) versions of the ZFS userspace tools
-  # wget -O "${this_repo_dir}/pool/contrib/libnvpair1linux_${zfs_version}_${os_cpu_alt_name}.deb" \
-  #   "http://http.us.debian.org/debian/pool/contrib/z/zfs-linux/libnvpair1linux_${zfs_version}_${os_cpu_alt_name}.deb"
-  # wget -O "${this_repo_dir}/pool/contrib/libuutil1linux_${zfs_version}_${os_cpu_alt_name}.deb" \
-  #   "http://http.us.debian.org/debian/pool/contrib/z/zfs-linux/libuutil1linux_${zfs_version}_${os_cpu_alt_name}.deb"
-  # wget -O "${this_repo_dir}/pool/contrib/libzfs2linux_${zfs_version}_${os_cpu_alt_name}.deb" \
-  #   "http://http.us.debian.org/debian/pool/contrib/z/zfs-linux/libzfs2linux_${zfs_version}_${os_cpu_alt_name}.deb"
-  # wget -O "${this_repo_dir}/pool/contrib/libzpool2linux_${zfs_version}_${os_cpu_alt_name}.deb" \
-  #   "http://http.us.debian.org/debian/pool/contrib/z/zfs-linux/libzpool2linux_${zfs_version}_${os_cpu_alt_name}.deb"
-  # wget -O "${this_repo_dir}/pool/contrib/zfs-initramfs_${zfs_version}_all.deb" \
-  #   "http://http.us.debian.org/debian/pool/contrib/z/zfs-linux/zfs-initramfs_${zfs_version}_all.deb"
-  # wget -O "${this_repo_dir}/pool/contrib/zfsutils-linux_${zfs_version}_${os_cpu_alt_name}.deb" \
-  #   "http://http.us.debian.org/debian/pool/contrib/z/zfs-linux/zfsutils-linux_${zfs_version}_${os_cpu_alt_name}.deb"
-  # wget -O "${this_repo_dir}/pool/contrib/zfs-zed_${zfs_version}_${os_cpu_alt_name}.deb" \
-  #   "http://http.us.debian.org/debian/pool/contrib/z/zfs-linux/zfs-zed_${zfs_version}_${os_cpu_alt_name}.deb"
-  # wget -O "${this_repo_dir}/pool/contrib/zfs-dkms_${zfs_version}_all.deb" \
-  #   "http://http.us.debian.org/debian/pool/contrib/z/zfs-linux/zfs-dkms_${zfs_version}_all.deb"
-  #
-  # # libc6 (this one seems like a bad idea) - Yep.  Bad idea.
-  # wget -O "${this_repo_dir}/pool/main/libc6_2.28-10_${os_cpu_alt_name}.deb" \
-  #   "http://ftp.us.debian.org/debian/pool/main/g/glibc/libc6_2.28-10_${os_cpu_alt_name}.deb"
-  # wget -O "${this_repo_dir}/pool/main/libc-bin_2.28-10_${os_cpu_alt_name}.deb" \
-  #   "http://http.us.debian.org/debian/pool/main/g/glibc/libc-bin_2.28-10_${os_cpu_alt_name}.deb"
   true
 }
 
@@ -146,13 +124,34 @@ else
   echo "No Linux kernel signing key was found.  One will be automatically generated.  If you need a signed kernel and modules for Secure Boot, please review the README.md file for instructions for creating a static signing key."
 fi
 
+#TODO: There are two ways to compile the kernel for an architecture other than
+#  the build system's architecture.
+#  * Cross Compile by using a compiler that targets the desired architecture
+#  * Use the target architecture's binaries, including compiler via Qemu.
+# The former option is faster but the Ubuntu debian/rules file detects that you
+#  are cross compiling and disables some features, including ZFS.  We can either
+#  patch the debian/rules file to not disable ZFS or use the slower Qemu method.
+# The slower Qemu method does require the build system has the following
+#  packages installed:
+#  * qemu
+#  * qemu-user-static
+#  * binfmt-support
+
+if [ ! "${build_cpu}" = "${os_cpu}" ]; then
+# TODO: if the chroot is for a different archetecture from the host, we need to
+#  install qemu qemu-user-static binfmt-support
+  cp "/usr/bin/qemu-${os_cpu}-static" "${chroot_dir}/usr/bin/"
+fi
+
 echo "Executing ikfs-chroot in the chroot environment"
 chroot "${chroot_dir}/" /bin/bash /tmp/ikfs/ikfs-chroot \
   --os-name="${os_name}" \
   --kernel-codename="${kernel_codename}" \
   --kernel-git-branch="${kernel_git_branch}" \
   --os-cpu="${os_cpu}" \
-  --os-codename="${os_codename}" || \
+  --os-codename="${os_codename}" \
+  --kernel-name-suffix="${kernel_name_suffix}"
+  --kernel-builders-name="${kernel_builders_name}" || \
   die "A process withing the chroot failed.  See the above output for more information."
 
 #TODO: Signing kernel and modules
@@ -179,4 +178,7 @@ else
   echo "A helper script for updating ${os_name} repositories doesn't exist yet.  Sorry."
 fi
 
-# cleanup
+#cleanup
+
+runtime=$(( $(date +%s) - $ikfs_starttime ))
+echo "Total run time: ${runtime} seconds"

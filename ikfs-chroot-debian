@@ -8,8 +8,8 @@ source "${script_dir}/ikfs-common"
 
 # If crosscompiling aarch64 (arm64): gcc-aarch64-linux-gnu
 if [ ! "${build_cpu}" = "${os_cpu}" ]; then
-  echo "Cross Compiling for '${os_cpu}' on '${build_cpu}'.  Will install additional package 'gcc-${os_cpu_alt_name}-linux-gnu'."
-  build_depends="${build_depends} gcc-${os_cpu_alt_name}-linux-gnu"
+  echo "Cross Compiling for '${os_cpu}' on '${build_cpu}'.  Will install additional package 'gcc-${os_cpu}-linux-gnu'."
+  build_depends="${build_depends} gcc-${os_cpu}-linux-gnu"
 fi
 
 # Make sure the required special mounts exist within this chroot
@@ -121,7 +121,7 @@ function configure_kernel () {
   echo "TODO: make oldconfig? How do we import the current systems settings?"
 
   # If crosscompiling from amd64 to aarch64
-  export CROSS_COMPILE=aarch64-linux-gnu-
+  #export CROSS_COMPILE=aarch64-linux-gnu-
   export $(dpkg-architecture -a${os_cpu})
 
   # From: https://wiki.ubuntu.com/Kernel/BuildYourOwnKernel

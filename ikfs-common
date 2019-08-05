@@ -4,6 +4,9 @@ function warn () {
 
 function die () {
   echo "${@}" 1>&2
+  if [ ! "${ikfs_starttime}" = "" ]; then
+    local runtime=$(( $(date +%s) - $ikfs_starttime ))
+    echo "Total run time: ${runtime} seconds"
   exit 1
 }
 
@@ -56,6 +59,20 @@ while getopts ":a:k:l:-:" opt; do
           kernel_git_branch=${OPTARG#*=}
           opt=${OPTARG%=$kernel_git_branch}
           ;;
+        kernelnamesuffix|kernel-name-suffix|kernel_name_suffix)
+          kernel_name_suffix="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
+          ;;
+        kernelnamesuffix=*|kernel-name-suffix=*|kernel_name_suffix=*)
+          kernel_name_suffix=${OPTARG#*=}
+          opt=${OPTARG%=$kernel_name_suffix}
+          ;;
+        kernelbuildersname|kernel-builders-name|kernel_builders_name|kernelbuildername|kernel-builder-name|kernel_builder_name)
+          kernel_builders_name="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
+          ;;
+        kernelbuildersname=*|kernel-builders-name=*|kernel_builders_name=*|kernelbuildername=*|kernel-builder-name=*|kernel_builder_name=*)
+          kernel_builders_name=${OPTARG#*=}
+          opt=${OPTARG%=$kernel_builders_name}
+          ;;
         log|log-file|log_file)
           logfile="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
           ;;
@@ -102,7 +119,7 @@ case "${os_cpu}" in
     os_cpu_alt_name="amd64"
     ;;
   arm64|aarch64)
-    os_cpu="arm64"
-    os_cpu_alt_name="aarch64"
+    os_cpu="aarch64"
+    os_cpu_alt_name="arm64"
     ;;
 esac
