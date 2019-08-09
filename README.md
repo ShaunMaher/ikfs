@@ -17,6 +17,18 @@ As an additional bonus, I'm also interested in all the generated components
 being cryptographically signed so that, in combination with Secure Boot, the
 entire startup environment is secure.
 
+***Update: 1*** The developers at ZFS-on-Linux have completed modifications to
+allow ZFS to operate at optimal performance without needing the blocked FPU
+functionality.
+
+***Update: 2*** Ubuntu recently announced that Ubuntu 19.10 may have ZFS root
+filesystem support in the installer.  The Eoan (19.10) kernel source tree is
+also using ZFS 0.8.1 which includes encryption support.  I have adjusted the
+build process so that using the Debian ZFS source package is now optional.
+
+By the time I get this project finished, 20.04 will be released, with ZFS on
+root and native encryption, the project will be redundant.
+
 ## Initial Setup
 ### GPG for signing your repository files
 TODO
@@ -80,7 +92,12 @@ signed.
 
 In the interests of, again, clearly marking these packages as not being
 real Canonical provided packages, it would be great if we could change
-"-generic" to something like "-personal"
+"-generic" to something like "-personal" (now partially implemented but
+untested)
+
+I would also like to have a series of patches that are only applied to certain
+kernel "flavours".  For example, I'd like a flavour called "kvim" and only this
+flavour gets the Khadas Vim patches.
 
 ### DKMS Module Signing issue (worked around)
 ```
@@ -107,3 +124,25 @@ on line 54
 The file `patches/linux/arch-all/version-all/0003-signing_key.pem_missing_in_dkms-build.patch`
 patches one of the build scripts so that the missing file is copied before it is
 needed.  This is a bit of a hack.
+
+## Secure boot notes
+Most sources say that if you want secure boot, UEFI without Grub and signed
+initramfs you need to have your initramfs ready at kernel compile time.  This
+would be super inconvieient if you have multiple systems wanting to use the same
+kernel but be able to have their own initramfs.  You also need to have the
+kernel command line baked into the kernel which won't work if you have multiple
+systems with different rootfs paths.
+
+The following article suggests that you can combine kernel, initramfs and
+commandline into a single signed file after compile time:
+https://bentley.link/secureboot/
+
+## History - So I don't try to fix things the same incorrect way twice
+### Alternatives to using gcc-8 for builds of the eoan kernel
+The error message about your compiler not supporting retpoline is mis-leading.
+The gcc-7 (7.4.0) compiler does support the initial retpoline fixes but not the
+"fcf-protection=none" fix.  As far as I can tell, none of the gcc-7 compilers
+do.
+
+I did attempt to use a PPA that provided more recent versions of gcc-7 but this
+did not resolve the issue.

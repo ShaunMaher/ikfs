@@ -21,17 +21,16 @@ kernel_builders_name="${kernel_builders_name:-${SUDO_USER:-${USER}}} <${kernel_b
 
 source "ikfs-common"
 
-tmp_dir=$(mktemp -d /tmp/ikfs.XXXXXXXXXX)
-#tmp_dir="/tmp/ikfs.CpFZwGpsRE"
+tmp_dir="${tmp_dir:-$(mktemp -d /tmp/ikfs.XXXXXXXXXX)}"
 script_dir=$(dirname $(readlink -f "${0}"))
 repository_dir="${script_dir}/repository"
 local_patches_dir="${script_dir}/patches"
 chroot_template_dir="${script_dir}/templates/chroot"
 
-# For native compile:
+# For cross compile using local cpu arch:
 #chroot_template_name="ikfs-${os_codename}-${build_cpu}.tgz"
 
-# For Cross Compile:
+# For native compile emulating the target arch using qemu:
 chroot_template_name="ikfs-${os_codename}-${os_cpu}.tgz"
 
 chroot_dir="${tmp_dir}/chroot/"
@@ -52,10 +51,10 @@ function download_base_rootfs () {
 }
 
 function download_ubuntu_base_rootfs () {
-  # For native compile:
+  # For cross compile using local cpu arch:
   #wget -O "${chroot_template_dir}/${chroot_template_name}" "http://cdimage.ubuntu.com/ubuntu-base/releases/${os_codename}/release/ubuntu-base-${os_release}-base-${build_cpu}.tar.gz"
 
-  # For Cross Compile:
+  # For native compile emulating the target arch using qemu:
   wget -O "${chroot_template_dir}/${chroot_template_name}" "http://cdimage.ubuntu.com/ubuntu-base/releases/${os_codename}/release/ubuntu-base-${os_release}-base-${os_cpu_alt_name}.tar.gz"
   return $?
 }
@@ -150,7 +149,7 @@ chroot "${chroot_dir}/" /bin/bash /tmp/ikfs/ikfs-chroot \
   --kernel-git-branch="${kernel_git_branch}" \
   --os-cpu="${os_cpu}" \
   --os-codename="${os_codename}" \
-  --kernel-name-suffix="${kernel_name_suffix}"
+  --kernel-name-suffix="${kernel_name_suffix}" \
   --kernel-builders-name="${kernel_builders_name}" || \
   die "A process withing the chroot failed.  See the above output for more information."
 

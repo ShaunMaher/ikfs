@@ -10,6 +10,7 @@ source "${script_dir}/ikfs-common"
 if [ ! "${build_cpu}" = "${os_cpu}" ]; then
   echo "Cross Compiling for '${os_cpu}' on '${build_cpu}'.  Will install additional package 'gcc-${os_cpu}-linux-gnu'."
   build_depends="${build_depends} gcc-${os_cpu}-linux-gnu"
+  #TODO: build_depends="${build_depends} gcc-8-${os_cpu}-linux-gnu"
 fi
 
 # Make sure the required special mounts exist within this chroot

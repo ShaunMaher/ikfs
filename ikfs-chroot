@@ -38,5 +38,6 @@ if [ -f "${script_dir}/ikfs-chroot-${os_name}" ]; then
   export kernel_codename
   export kernel_git_branch
   export kernel_name_suffix
+  export kernel_builders_name
   "${script_dir}/ikfs-chroot-${os_name}"
 fi

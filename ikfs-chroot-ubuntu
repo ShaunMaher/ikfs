@@ -3,11 +3,14 @@
 # TODO: build depends only on amd64 and i386: makedumpfile
 
 os_cpu="${os_cpu:-$(uname -p)}"
-build_depends="equivs dkms wget kmod libelf-dev kernel-wedge rsync gawk debhelper git locales dh-systemd libnewt-dev libiberty-dev libdw-dev pkg-config libunwind8-dev liblzma-dev openssl libaudit-dev python-dev libudev-dev autoconf automake uuid-dev binutils-dev libnuma-dev xmlto docbook-utils ghostscript fig2dev bzip2 sharutils asciidoc python-sphinx python-sphinx-rtd-theme python3-distutils dh-autoreconf tzdata ${build_depends}"
+os_codename="${os_codename:-$(lsb_release -c | awk '{print $2}')}"
+os_release="${os_release:-$(lsb_release -r | awk '{print $2}')}"
+build_depends="equivs dkms wget kmod libelf-dev kernel-wedge rsync gawk debhelper git locales dh-systemd libnewt-dev libiberty-dev libdw-dev pkg-config libunwind8-dev liblzma-dev openssl libaudit-dev python-dev libudev-dev autoconf automake uuid-dev binutils-dev libnuma-dev xmlto docbook-utils ghostscript fig2dev bzip2 sharutils asciidoc python-sphinx python-sphinx-rtd-theme dh-autoreconf tzdata python3-distutils python3-lib2to3 ${build_depends}"
 script_dir=$(dirname $(readlink -f "${0}"))
 kernel_git_branch="${kernel_git_branch:-master}"
 kernel_src_dir=/usr/src/linux
 kernel_name_suffix="${kernel_name_suffix:-generic}"
+use_debian_zfs_package=0
 
 source "${script_dir}/ikfs-common"
 
@@ -15,6 +18,31 @@ source "${script_dir}/ikfs-common"
 if [ -f "${script_dir}/ikfs-chroot-debian" ]; then
   source "${script_dir}/ikfs-chroot-debian"
 fi
+
+function install_build_depends () {
+  local result=0
+  echo "Installing all build dependencies (within the chroot)"
+  apt -y install ${build_depends} >/dev/null || result=1
+
+  if [ "${kernel_codename}" = "eoan" ] && [ $(echo "${os_release}" | sed 's/\.//g') -lt 1910 ]; then
+    # Extra fudges because the default gcc in bionic is 7.4.0 which will not
+    #  build the eoan kernel due to lack of fcf-protection support.  More Info:
+    #  https://lists.ubuntu.com/archives/ubuntu-devel/2019-June/040741.html
+    echo "Installing extra build packages to support 'fcf-protection' on pre-eoan build hosts."
+    apt -y install gcc-8-base gcc-8 g++-8 libgcc-8-dev cpp-8 >/dev/null || result=1
+    export CC=gcc-8
+    export CPP=cpp-8
+    export CXX=g++-8
+    export LD=g++-8
+    update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-7 700 >/dev/null || result=1
+    update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-8 800 >/dev/null || result=1
+    ln -s /etc/alternatives/cpp /lib/cpp >/dev/null || result=1
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 700 --slave /usr/bin/g++ g++ /usr/bin/g++-7 >/dev/null || result=1
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 800 --slave /usr/bin/g++ g++ /usr/bin/g++-8 >/dev/null || result=1
+  fi
+
+  return $result
+}
 
 function download_kernel_source () {
   echo "Downloading Kernel Source from 'kernel.ubuntu.com/ubuntu/${os_name}-${kernel_codename}.git'"
@@ -34,47 +62,205 @@ function download_kernel_source () {
   abi_version=$(basename $(find ./debian.master/abi -maxdepth 1 -mindepth 1 -type d))
   echo "The abi version of the downloaded source: '${abi_version}'"
 
+  prev_abi_version=$(cat "debian.master/changelog" | grep '^linux[[:space:]]' | head -1 | awk 'BEGIN{FS="("}{print $2}' | awk 'BEGIN{FS=")"}{print $1}')
+  echo "The abi version of the previous build that this build will be compared to: '${prev_abi_version}'"
+
+  if [ ! -d "debian.master/abi/${prev_abi_version}" ]; then
+    echo "WARN: The previous abi is missing.  Copying the current abi so the checks won't fail."
+    avail_abi=$(find "debian.master/abi" -mindepth 1 -maxdepth 1 -type d | sort | head -1)
+    if [ "${avail_abi}" = "" ]; then
+      echo "FATAL ERROR: The build process checks the abi of the kernel being compiled against the previous build's abi to see if there are any changes.  For some reason, the previous abi is missing from the source and.  An attempt was made to bypass this issue by copying any available abi into the missing abi's location but it seems that no abis exist."
+      return 1
+    else
+      cp -r "${avail_abi}" "debian.master/abi/${prev_abi_version}" || return 1
+    fi
+  fi
+
   # Update the changelog to add our own contact details
+  echo "kernel_builders_name: ${kernel_builders_name}"
   DEBFULLNAME="${kernel_builders_name}"
   export DEBFULLNAME
-  dch --changelog debian.master/changelog --newversion "${kernel_version}" --distribution "${os_codename}"  --noquery "Personal build with modifications from upstream"
+  dch -b --changelog debian.master/changelog --newversion "${abi_version}" --distribution "${os_codename}"  --noquery "Personal build with modifications from upstream"
 
   # Change "generic" to something more personal
   if [ ! "${kernel_name_suffix}" = "generic" ]; then
-    cp "debian.master/config/config.flavour.generic" "debian.master/config/config.flavour.${kernel_name_suffix}"
+    echo "Creating a new kernel falvour called '${kernel_name_suffix}'"
+    cp "debian.master/config/${os_cpu_alt_name}/config.flavour.generic" "debian.master/config/${os_cpu_alt_name}/config.flavour.${kernel_name_suffix}"
+    cp "debian.master/control.d/vars.generic" "debian.master/control.d/vars.${kernel_name_suffix}"
     sed -i "s/[[:space:]]generic[[:space:]]/\t${kernel_name_suffix}\t/g" debian.master/d-i/kernel-versions
+    sed -i "s/[[:space:]]generic[[:space:]]/ ${kernel_name_suffix} /g" "debian.master/rules.d/${os_cpu_alt_name}.mk"
+
+    #TODO: debian.master/abi/5.2.0-7.8/amd64/*.generic
   fi
 
-  zfs_version=$(
-    wget -q -O- http://http.us.debian.org/debian/dists/experimental/contrib/source/Sources.xz | \
-    xz -d | \
-    awk '{ if (/^Package: zfs-linux/) { section=1 } else if (/^Package: /) {section=0}; if (section>0 && /^Version: /) {print $2}}' | \
+  echo "Updating the dkms-versions file with the correct version numbers for various packages."
+  if [ $use_debian_zfs_package -gt 0 ]; then
+    zfs_version=$(package_version_from_sources "zfs-linux" "${debian_zfs_sources_url_experimental}")
+    if [ "${zfs_version}" = "" ]; then
+      zfs_version=$(package_version_from_sources "zfs-linux" "${debian_zfs_sources_url_unstable}")
+      if [ "${zfs_version}" = "" ]; then
+        echo "Unable to find a suitable zfs-linux source package in the Debain source repositories (experimental and unstable)"
+        return 1
+      fi
+    fi
+  else
+    zfs_version=$(package_version_from_sources "zfs-linux" "${ubuntu_zfs_sources_url}")
+    if [ "${zfs_version}" = "" ]; then
+      echo "Unable to find a suitable zfs-linux source package in the Ubuntu source repositories"
+      return 1
+    fi
+  fi
+  nvidia430_version=$(package_version_from_sources "nvidia-dkms-430" "${ubuntu_nvidia_sources_url}")
+  nvidia390_version=$(package_version_from_sources "nvidia-dkms-390" "${ubuntu_nvidia_sources_url}")
+  virtualbox_version=$(package_version_from_sources "virtualbox" "${ubuntu_virtualbox_sources_url}")
+
+  echo "The current 'zfs-linux' in the source repository is version: '${zfs_version}'"
+  echo "The current 'nvidia-graphics-drivers-430' package in the package repository is version: '${nvidia430_version}'"
+  echo "The current 'nvidia-graphics-drivers-390' package in the package repository is version: '${nvidia390_version}'"
+  echo "The current 'virtualbox' package in the package repository is version: '${virtualbox_version}'"
+
+  #TODO: If we're using the Ubuntu provided zfs-linux package, we need to patch
+  #  debian/dkms-versions to reference a package version that actually exists.
+  sed -i "s/\(zfs-linux\).*/\1 ${zfs_version}/g" debian/dkms-versions
+  sed -i "s/\(nvidia-graphics-drivers-430\).*/\1 ${nvidia430_version}/g" debian/dkms-versions
+  sed -i "s/\(nvidia-graphics-drivers-390\).*/\1 ${nvidia390_version}/g" debian/dkms-versions
+  sed -i "s/\(virtualbox\).*/\1 ${virtualbox_version}/g" debian/dkms-versions
+}
+
+function package_version_from_sources () {
+  local source_package_name="${1}"
+  local source_package_list_url=$(echo "${2}" | \
+    sed "s/{kernel_codename}/${kernel_codename}/g" | \
+    sed "s/{os_codename}/${os_codename}/g" \
+  )
+
+  #echo "source_package_list_url: ${source_package_list_url}" 1>&2
+
+  local tmpfile=$(mktemp /tmp/Sources.XXXXXX)
+  wget -q -O- "${source_package_list_url}" | \
+    xz -d >${tmpfile}
+
+  # Extract just the section of the Sources file that relates to the package
+  #  we're dealing with
+  cat ${tmpfile} | awk "{ if (/^Package: ${source_package_name}/) { lines=\"\"; section=1 } else if (/^Package: /) {section=0}; if (section>0) {lines=lines\"\n\"\$0}}END{print lines}" \
+    >${tmpfile}_${source_package_name}
+
+  # Get the package version
+  local package_version=$( \
+    cat ${tmpfile}_${source_package_name} | awk '{if (/^Version: /) {print $2}}' | \
     sort -n | \
     tail -1
   )
-  if [ "${zfs_version}" = "" ]; then
-    echo "Cannot find the latest 'experimental' zfs-linux source package.  Trying for 'unstable' instead."
-    zfs_version=$(
-      wget -q -O- http://http.us.debian.org/debian/dists/unstable/contrib/source/Sources.xz | \
-      xz -d | \
-      awk '{ if (/^Package: zfs-linux/) { section=1 } else if (/^Package: /) {section=0}; if (section>0 && /^Version: /) {print $2}}' | \
-      sort -n | \
-      tail -1
-    )
-  fi
-  if [ "${zfs_version}" = "" ]; then
-    echo "Failed to find a suitable 'zfs-linux' source package.  Browse to https://packages.debian.org and see if there's a problem (e.g. name change)."
-    return 1
-  fi
-  echo "The current experimental ZFS package in the Debian repository is version: '${zfs_version}'"
+  echo ${package_version}
 }
 
 function build_extra_packages () {
-  build_extra_package "zfs-linux" "experimental/contrib" || \
-    build_extra_package "zfs-linux" "unstable/contrib" || return 1
+  if [ $use_debian_zfs_package -gt 0 ]; then
+    build_extra_package_from_debian "zfs-linux" "experimental/contrib" || \
+      build_extra_package_from_debian "zfs-linux" "unstable/contrib" || return 1
+  else
+    build_extra_package_from_ubuntu "zfs-linux" "${kernel_codename}/main" || return 1
+
+    #TODO: I don't personally need these additional packages but they would also
+    #  need to be backported from kernel_codename to os_codename so that they
+    #  work with modules we built for our kernel
+    #build_extra_package_from_ubuntu "nvidia-graphics-drivers-430" "${kernel_codename}/restricted" || return 1
+    #build_extra_package_from_ubuntu "nvidia-graphics-drivers-390" "${kernel_codename}/restricted" || return 1
+    #build_extra_package_from_ubuntu "virtualbox" "${kernel_codename}/multiverse" || return 1
+
+    # If you want to backport any other packages from kernel_codename to
+    #  os_codename, here's the place to add them.
+  fi
 }
 
-function build_extra_package () {
+function build_extra_package_from_ubuntu () {
+  local source_package_name="${1}"
+  local source_package_repo="${2}"
+
+  local src_dir="/usr/src/${source_package_name}"
+  mkdir -p "${src_dir}"
+  cd "${src_dir}"
+
+  # Get the list of source packages from the upstream repository
+  wget -q -O- "http://archive.ubuntu.com/ubuntu/dists/${source_package_repo}/source/Sources.xz" | \
+    xz -d >/tmp/Sources
+
+  # Extract just the section of the Sources file that relates to the package
+  #  we're dealing with
+  cat /tmp/Sources | awk "{ if (/^Package: ${source_package_name}/) { lines=\"\"; section=1 } else if (/^Package: /) {section=0}; if (section>0) {lines=lines\"\n\"\$0}}END{print lines}" \
+    >/tmp/Sources_${source_package_name}
+
+  # Get the package version
+  local package_version=$( \
+    cat /tmp/Sources_${source_package_name} | awk '{if (/^Version: /) {print $2}}' | \
+    sort -n | \
+    tail -1
+  )
+  if [ "${package_version}" = "" ]; then
+    echo "Cannot find the latest '${source_package_repo}/${source_package_name}' source package."
+    return 1
+  else
+    echo "The current '${source_package_repo}/${source_package_name}' package in the Debian repository is version: '${package_version}'"
+  fi
+
+  # Get the directory within the repository that we will need to download from
+  local repo_directory=$( \
+    cat /tmp/Sources_${source_package_name} | awk '{if (/^Directory: /) {print $2}}' \
+  )
+
+  # Get a list of files that relate to the package
+  cat /tmp/Sources_${source_package_name} | awk "{ if (/^Files:/) { section=1 } else if (/^[[:alnum:]]/) {section=0}; if (section>0 && /^ /) {print \$0}}" \
+    >/tmp/Files_${source_package_name}
+
+  # Download the listed files and check their checksums
+  readarray -t files </tmp/Files_${source_package_name}
+  for file in "${files[@]}"; do
+    file_md5sum=$(echo "${file}" | awk '{print $1}')
+    file_size=$(echo "${file}" | awk '{print $2}')
+    file_name=$(echo "${file}" | awk '{print $3}')
+
+    echo "Downloading file 'http://archive.ubuntu.com/ubuntu/${repo_directory}/${file_name}'"
+    wget -q "http://archive.ubuntu.com/ubuntu/${repo_directory}/${file_name}"
+
+    dl_md5sum=$(md5sum ${file_name} | awk '{print $1}')
+    if [ "${file_md5sum}" = "${dl_md5sum}" ]; then
+      echo "Downloaded file is valid"
+    else
+      echo "Downloaded file is invalid: '${file_md5sum}' != '${dl_md5sum}'"
+      return 1
+    fi
+
+    # Extract the "orig" tarball, stripping the leading component from the paths
+    #  so the root of the source is this directory
+    if [[ $file_name == *".orig."* ]]; then
+      echo "Extracting source from '${file_name}'"
+      tar --strip-components=1 -xzf "${file_name}"
+
+    # Extract any additional tarballs
+    elif [[ $file_name == *".tar.xz"* ]]; then
+      echo "Extracting from '${file_name}'"
+      tar -xJf ${file_name}
+    elif [[ $file_name == *".tar.gz"* ]]; then
+      echo "Extracting from '${file_name}'"
+      tar -xzf ${file_name}
+    elif [[ $file_name == *".dsc" ]]; then
+      # Install build dependencies
+      # Reference: https://www.v13.gr/blog/?p=364
+      echo "Installing build dependencies as described in '${file_name}'"
+      yes | mk-build-deps -i "${file_name}"
+    fi
+  done
+
+  # Start the build and package process
+  # Reference: https://wiki.debian.org/HowToPackageForDebian#Building_Debian_packages
+  if [ "${build_cpu}" = "${os_cpu}" ]; then
+    debuild -i -us -uc -b
+  else
+    debuild -i -us -uc -b -a${os_cpu}
+  fi
+}
+
+function build_extra_package_from_debian () {
   local source_package_name="${1}"
   local source_package_repo="${2}"
 
