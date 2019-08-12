@@ -3,6 +3,7 @@
 os_cpu="${os_cpu:-$(uname -p)}"
 build_cpu="${build_cpu:-$(uname -p)}"
 build_depends="devscripts cpio bc build-essential libpci-dev libtool libssl-dev bison flex ${build_depends}"
+kernel_name_suffix="${kernel_name_suffix:-generic}"
 
 source "${script_dir}/ikfs-common"
 
@@ -71,12 +72,18 @@ function download_kernel_source () {
 function apply_local_patches () {
   readarray -t patches < <( \
     ( \
-      find "${script_dir}/patches/linux/arch-all/version-all" -mindepth 1 2>/dev/null ; \
-      find "${script_dir}/patches/linux/arch-all/${kernel_version}/" -mindepth 1 2>/dev/null ; \
-      find "${script_dir}/patches/linux/arch-all/${kernel_version_major}.${kernel_version_minor}/" -mindepth 1 2>/dev/null; \
-      find "${script_dir}/patches/linux/arch-${os_cpu}/version-all" -mindepth 1 2>/dev/null ; \
-      find "${script_dir}/patches/linux/arch-${os_cpu}/${kernel_version}/" -mindepth 1 2>/dev/null ; \
-      find "${script_dir}/patches/linux/arch-${os_cpu}/${kernel_version_major}.${kernel_version_minor}/" -mindepth 1 2>/dev/null \
+      find "${script_dir}/patches/linux/flavour-all/arch-all/version-all" -mindepth 1 2>/dev/null ; \
+      find "${script_dir}/patches/linux/flavour-all/arch-all/${kernel_version}/" -mindepth 1 2>/dev/null ; \
+      find "${script_dir}/patches/linux/flavour-all/arch-all/${kernel_version_major}.${kernel_version_minor}/" -mindepth 1 2>/dev/null; \
+      find "${script_dir}/patches/linux/flavour-all/arch-${os_cpu}/version-all" -mindepth 1 2>/dev/null ; \
+      find "${script_dir}/patches/linux/flavour-all/arch-${os_cpu}/${kernel_version}/" -mindepth 1 2>/dev/null ; \
+      find "${script_dir}/patches/linux/flavour-all/arch-${os_cpu}/${kernel_version_major}.${kernel_version_minor}/" -mindepth 1 2>/dev/null \
+      find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-all/version-all" -mindepth 1 2>/dev/null ; \
+      find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-all/${kernel_version}/" -mindepth 1 2>/dev/null ; \
+      find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-all/${kernel_version_major}.${kernel_version_minor}/" -mindepth 1 2>/dev/null; \
+      find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-${os_cpu}/version-all" -mindepth 1 2>/dev/null ; \
+      find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-${os_cpu}/${kernel_version}/" -mindepth 1 2>/dev/null ; \
+      find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-${os_cpu}/${kernel_version_major}.${kernel_version_minor}/" -mindepth 1 2>/dev/null \
     ) | sort \
   )
   cd "${kernel_src_dir}"
@@ -87,6 +94,8 @@ function apply_local_patches () {
     # Some of the patches have version numbers that we need to sub in
     sed -i "s/{abi_version}/${abi_version}/g" ${patch}
     sed -i "s/{zfs_version}/${zfs_version}/g" ${patch}
+    sed -i "s/{kernel_name_suffix}/${kernel_name_suffix}/g" ${patch}
+    sed -i "s/{flavour}/${kernel_name_suffix}/g" ${patch}
 
     patch -p 1 -i "${patch}" || return 1
   done
@@ -155,7 +164,7 @@ function build_kernel_package () {
   cd ${kernel_src_dir}
   fakeroot debian/rules clean || return 1
   touch .scmversion
-  fakeroot debian/rules binary-headers binary-generic binary-perarch || return 1
+  fakeroot debian/rules binary-headers binary-${kernel_name_suffix} binary-perarch || return 1
   return 0
 }
 

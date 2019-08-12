@@ -33,7 +33,7 @@ function install_build_depends () {
     export CC=gcc-8
     export CPP=cpp-8
     export CXX=g++-8
-    export LD=g++-8
+    export LD=ld
     update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-7 700 >/dev/null || result=1
     update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-8 800 >/dev/null || result=1
     ln -s /etc/alternatives/cpp /lib/cpp >/dev/null || result=1
@@ -84,13 +84,20 @@ function download_kernel_source () {
 
   # Change "generic" to something more personal
   if [ ! "${kernel_name_suffix}" = "generic" ]; then
-    echo "Creating a new kernel falvour called '${kernel_name_suffix}'"
+    echo "Creating a new kernel flavour called '${kernel_name_suffix}'"
     cp "debian.master/config/${os_cpu_alt_name}/config.flavour.generic" "debian.master/config/${os_cpu_alt_name}/config.flavour.${kernel_name_suffix}"
     cp "debian.master/control.d/vars.generic" "debian.master/control.d/vars.${kernel_name_suffix}"
+    cp "debian.master/control.d/generic.inclusion-list" "debian.master/control.d/${kernel_name_suffix}.inclusion-list"
     sed -i "s/[[:space:]]generic[[:space:]]/\t${kernel_name_suffix}\t/g" debian.master/d-i/kernel-versions
     sed -i "s/[[:space:]]generic[[:space:]]/ ${kernel_name_suffix} /g" "debian.master/rules.d/${os_cpu_alt_name}.mk"
 
     #TODO: debian.master/abi/5.2.0-7.8/amd64/*.generic
+    readarray -t files < <(find "debian.master/abi/${prev_abi_version}/${os_cpu_alt_name}/" -mindepth 1 -maxdepth 1 -type f | grep 'generic')
+    for file in "${files[@]}"; do
+      new_file=$(echo "${file}" | sed "s/generic/${kernel_name_suffix}/g")
+      echo "Copying generic abi file '${file}' to '${new_file}'."
+      cp "${file}" "${new_file}"
+    done
   fi
 
   echo "Updating the dkms-versions file with the correct version numbers for various packages."
@@ -125,6 +132,13 @@ function download_kernel_source () {
   sed -i "s/\(nvidia-graphics-drivers-430\).*/\1 ${nvidia430_version}/g" debian/dkms-versions
   sed -i "s/\(nvidia-graphics-drivers-390\).*/\1 ${nvidia390_version}/g" debian/dkms-versions
   sed -i "s/\(virtualbox\).*/\1 ${virtualbox_version}/g" debian/dkms-versions
+
+  # Once again, we're checking that all the dependencies are installed.  This
+  #  time we're generating the debian/control file and using it's list of build
+  #  dependencies.  This will capture anything our static list missed.
+  debian/rules debian/control
+  yes | mk-build-deps -i debian/control
+  rm debian/control
 }
 
 function package_version_from_sources () {

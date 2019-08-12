@@ -10,9 +10,9 @@ diff -ruN '--exclude=*git*' ../ubuntu-disco.orig/debian/scripts/dkms-build ./deb
 +echo "dkms_dir\t\t${dkms_dir}"
 +echo "dkms_package\t\t${dkms_package}"
 +echo "pkgdir\t\t${pkgdir}"
-+if [ ! -f "/usr/src/linux/debian/build/build-generic/certs/signing_key.pem" ]; then
++if [ ! -f "/usr/src/linux/debian/build/build-{flavour}/certs/signing_key.pem" ]; then
 +	if [ -f "/usr/src/linux/certs/signing_key.pem" ]; then
-+		cp "/usr/src/linux/certs/signing_key.pem" "/usr/src/linux/debian/build/build-generic/certs/signing_key.pem"
++		cp "/usr/src/linux/certs/signing_key.pem" "/usr/src/linux/debian/build/build-{flavour}/certs/signing_key.pem"
 +	else
 +		echo "Crud.  I couldn't find signing_key.pem in the kernel source tree either."
 +	fi
