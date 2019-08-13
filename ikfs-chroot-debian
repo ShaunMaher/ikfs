@@ -73,15 +73,19 @@ function apply_local_patches () {
   readarray -t patches < <( \
     ( \
       find "${script_dir}/patches/linux/flavour-all/arch-all/version-all" -mindepth 1 2>/dev/null ; \
+      find "${script_dir}/patches/linux/flavour-all/arch-all/version-${kernel_codename}" -mindepth 1 2>/dev/null ; \
       find "${script_dir}/patches/linux/flavour-all/arch-all/${kernel_version}/" -mindepth 1 2>/dev/null ; \
       find "${script_dir}/patches/linux/flavour-all/arch-all/${kernel_version_major}.${kernel_version_minor}/" -mindepth 1 2>/dev/null; \
       find "${script_dir}/patches/linux/flavour-all/arch-${os_cpu}/version-all" -mindepth 1 2>/dev/null ; \
+      find "${script_dir}/patches/linux/flavour-all/arch-${os_cpu}/version-${kernel_codename}" -mindepth 1 2>/dev/null ; \
       find "${script_dir}/patches/linux/flavour-all/arch-${os_cpu}/${kernel_version}/" -mindepth 1 2>/dev/null ; \
       find "${script_dir}/patches/linux/flavour-all/arch-${os_cpu}/${kernel_version_major}.${kernel_version_minor}/" -mindepth 1 2>/dev/null \
       find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-all/version-all" -mindepth 1 2>/dev/null ; \
+      find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-all/version-${kernel_codename}" -mindepth 1 2>/dev/null ; \
       find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-all/${kernel_version}/" -mindepth 1 2>/dev/null ; \
       find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-all/${kernel_version_major}.${kernel_version_minor}/" -mindepth 1 2>/dev/null; \
       find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-${os_cpu}/version-all" -mindepth 1 2>/dev/null ; \
+      find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-${os_cpu}/version-${kernel_codename}" -mindepth 1 2>/dev/null ; \
       find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-${os_cpu}/${kernel_version}/" -mindepth 1 2>/dev/null ; \
       find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-${os_cpu}/${kernel_version_major}.${kernel_version_minor}/" -mindepth 1 2>/dev/null \
     ) | sort \

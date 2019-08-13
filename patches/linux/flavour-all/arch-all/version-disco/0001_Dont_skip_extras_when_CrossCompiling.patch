@@ -1,0 +1,22 @@
+diff -ruN '--exclude=*git*' ../ubuntu-disco.orig/debian/rules ./debian/rules
+--- ../ubuntu-disco.orig/debian/rules	2019-06-18 17:34:19.000000000 +1000
++++ ./debian/rules	2019-08-13 17:27:54.221770009 +1000
+@@ -39,12 +39,12 @@
+ do_tools_host?=false
+ 
+ # Don't build tools or udebs in a cross compile environment.
+-ifneq ($(DEB_HOST_ARCH),$(DEB_BUILD_ARCH))
+-	do_tools=false
+-	disable_d_i=true
+-	do_zfs=false
+-	do_dkms_nvidia=false
+-endif
++#ifneq ($(DEB_HOST_ARCH),$(DEB_BUILD_ARCH))
++#	do_tools=false
++#	disable_d_i=true
++#	do_zfs=false
++#	do_dkms_nvidia=false
++#endif
+ 
+ # Are any of the kernel signing options enabled.
+ any_signed=$(sort $(filter-out false,$(uefi_signed) $(opal_signed)))

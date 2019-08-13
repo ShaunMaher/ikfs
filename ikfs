@@ -28,10 +28,10 @@ local_patches_dir="${script_dir}/patches"
 chroot_template_dir="${script_dir}/templates/chroot"
 
 # For cross compile using local cpu arch:
-#chroot_template_name="ikfs-${os_codename}-${build_cpu}.tgz"
+chroot_template_name="ikfs-${os_codename}-${build_cpu}.tgz"
 
 # For native compile emulating the target arch using qemu:
-chroot_template_name="ikfs-${os_codename}-${os_cpu}.tgz"
+#chroot_template_name="ikfs-${os_codename}-${os_cpu}.tgz"
 
 chroot_dir="${tmp_dir}/chroot/"
 gpg_signing_uid="shaun@ghanima.net"
@@ -52,10 +52,10 @@ function download_base_rootfs () {
 
 function download_ubuntu_base_rootfs () {
   # For cross compile using local cpu arch:
-  #wget -O "${chroot_template_dir}/${chroot_template_name}" "http://cdimage.ubuntu.com/ubuntu-base/releases/${os_codename}/release/ubuntu-base-${os_release}-base-${build_cpu}.tar.gz"
+  wget -O "${chroot_template_dir}/${chroot_template_name}" "http://cdimage.ubuntu.com/ubuntu-base/releases/${os_codename}/release/ubuntu-base-${os_release}-base-${build_cpu}.tar.gz"
 
   # For native compile emulating the target arch using qemu:
-  wget -O "${chroot_template_dir}/${chroot_template_name}" "http://cdimage.ubuntu.com/ubuntu-base/releases/${os_codename}/release/ubuntu-base-${os_release}-base-${os_cpu_alt_name}.tar.gz"
+  #wget -O "${chroot_template_dir}/${chroot_template_name}" "http://cdimage.ubuntu.com/ubuntu-base/releases/${os_codename}/release/ubuntu-base-${os_release}-base-${os_cpu_alt_name}.tar.gz"
   return $?
 }
 
