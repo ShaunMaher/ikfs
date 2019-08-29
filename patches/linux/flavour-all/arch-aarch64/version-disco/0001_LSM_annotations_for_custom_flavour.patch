@@ -1,0 +1,12 @@
+diff -ruN '--exclude=*git*' ../ubuntu-disco.orig/debian.master/config/annotations ./debian.master/config/annotations
+--- ../ubuntu-disco.orig/debian.master/config/annotations	2019-06-18 17:34:19.000000000 +1000
++++ ./debian.master/config/annotations	2019-08-13 18:15:08.288296655 +1000
+@@ -12184,7 +12184,7 @@
+ CONFIG_LOCK_DOWN_MANDATORY                      policy<{'amd64': 'n', 'arm64': 'n', 'armhf': 'n', 'i386': 'n'}>
+ CONFIG_ALLOW_LOCKDOWN_LIFT_BY_SYSRQ             policy<{'amd64': 'y', 'i386': 'y'}>
+ CONFIG_LOCK_DOWN_IN_EFI_SECURE_BOOT             policy<{'amd64': 'y', 'arm64': 'y', 'armhf': 'y', 'i386': 'y'}>
+-CONFIG_LSM                                      policy<{'amd64': '"yama,loadpin,integrity,apparmor"', 'arm64-generic': '"yama,loadpin,integrity,apparmor"', 'armhf': '"yama,loadpin,integrity,apparmor"', 'i386': '"yama,loadpin,integrity,apparmor"', 'ppc64el': '"yama,loadpin,integrity,apparmor"', 's390x': '"yama,loadpin,integrity,apparmor"'}>
++CONFIG_LSM                                      policy<{'amd64': '"yama,loadpin,integrity,apparmor"', 'arm64': '"yama,loadpin,integrity,apparmor"', 'armhf': '"yama,loadpin,integrity,apparmor"', 'i386': '"yama,loadpin,integrity,apparmor"', 'ppc64el': '"yama,loadpin,integrity,apparmor"', 's390x': '"yama,loadpin,integrity,apparmor"'}>
+ #
+ CONFIG_ALLOW_LOCKDOWN_LIFT_BY_SYSRQ             mark<ENFORCED>
+ CONFIG_LOCK_DOWN_IN_EFI_SECURE_BOOT             mark<ENFORCED>

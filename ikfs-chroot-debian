@@ -44,11 +44,11 @@ function install_all_os_updates () {
   # Silence messages about readline/dialog
   export DEBIAN_FRONTEND=noninteractive
 
-  apt -y update >/dev/null || result=1
+  apt -y update || result=1
 
   # The locale fudge we did in ikfs-chroot was only temporary.  This installs
   #  the locales package, generates the desired locale and switches to it.
-  apt -y install locales >/dev/null
+  apt -y install locales
   locale-gen en_AU.UTF-8
   export LC_CTYPE="en_AU.UTF-8"
   export LANG="en_AU.UTF-8"
@@ -61,7 +61,7 @@ function install_all_os_updates () {
 function install_build_depends () {
   local result=0
   echo "Installing all build dependencies (within the chroot)"
-  apt -y install ${build_depends} >/dev/null || result=1
+  apt -y install ${build_depends} || result=1
   return $result
 }
 
@@ -88,7 +88,7 @@ function apply_local_patches () {
       find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-${os_cpu}/version-${kernel_codename}" -mindepth 1 2>/dev/null ; \
       find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-${os_cpu}/${kernel_version}/" -mindepth 1 2>/dev/null ; \
       find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-${os_cpu}/${kernel_version_major}.${kernel_version_minor}/" -mindepth 1 2>/dev/null \
-    ) | sort \
+    ) | grep -v -i "\.disabled$" | sort \
   )
   cd "${kernel_src_dir}"
   for patch in "${patches[@]}"; do
@@ -97,6 +97,7 @@ function apply_local_patches () {
     echo "zfs_version: '${zfs_version}'"
     # Some of the patches have version numbers that we need to sub in
     sed -i "s/{abi_version}/${abi_version}/g" ${patch}
+    sed -i "s/{prev_abi_version}/${prev_abi_version}/g" ${patch}
     sed -i "s/{zfs_version}/${zfs_version}/g" ${patch}
     sed -i "s/{kernel_name_suffix}/${kernel_name_suffix}/g" ${patch}
     sed -i "s/{flavour}/${kernel_name_suffix}/g" ${patch}
@@ -134,9 +135,11 @@ function copy_signing_key () {
 function configure_kernel () {
   echo "TODO: make oldconfig? How do we import the current systems settings?"
 
-  # If crosscompiling from amd64 to aarch64
-  #export CROSS_COMPILE=aarch64-linux-gnu-
-  export $(dpkg-architecture -a${os_cpu})
+  # For cross compile using local cpu arch:
+  if [ ! "${build_cpu}" = "${os_cpu}" ]; then
+    export CROSS_COMPILE="${os_cpu}-linux-gnu-"
+  fi
+  export $(dpkg-architecture -a${os_cpu_alt_name})
 
   # From: https://wiki.ubuntu.com/Kernel/BuildYourOwnKernel
   cd ${kernel_src_dir}

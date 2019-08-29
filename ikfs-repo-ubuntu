@@ -50,10 +50,23 @@ function update_repository() {
   apt-ftparchive -c ${script_dir}/apt.conf release dists/${os_codename} \
     >${this_repo_dir}/dists/${os_codename}/Release
 
-  gpg -a --yes --output ${this_repo_dir}/dists/${os_codename}/Release.gpg --local-user "${gpg_signing_uid}" --detach-sign ${this_repo_dir}/dists/${os_codename}/Release
-  gpg -a --yes --clearsign --output ${this_repo_dir}/dists/${os_codename}/InRelease --local-user "${gpg_signing_uid}" --detach-sign ${this_repo_dir}/dists/${os_codename}/Release
+  # There's a good chance that, while we were off building, our GPG session
+  #  expired.  There's also a good chance that the human that kicked off the
+  #  process is not sitting waiting for the GPG prompt.  The GPG prompt would
+  #  normally timeout, resulting in the entire process being wasted.  To prevent
+  #  this, the first GPG process after having completd the build will be run
+  #  repeatedly in a loop until it's successful (or the user hits CTRL+c a few
+  #  times).
+  gpg_result=1
 
-  gpg --export "${gpg_signing_uid}" >${this_repo_dir}/signing_key.gpg
+  while [ $gpg_result -gt 0 ]; do
+    gpg --pinentry-mode $gpg_pin_entry -a --yes --output ${this_repo_dir}/dists/${os_codename}/Release.gpg --local-user "${gpg_signing_uid}" --detach-sign ${this_repo_dir}/dists/${os_codename}/Release
+    gpg_result=$?
+    sleep 20
+  done
+  gpg --pinentry-mode $gpg_pin_entry -a --yes --clearsign --output ${this_repo_dir}/dists/${os_codename}/InRelease --local-user "${gpg_signing_uid}" --detach-sign ${this_repo_dir}/dists/${os_codename}/Release
+
+  gpg --pinentry-mode $gpg_pin_entry --export "${gpg_signing_uid}" >${this_repo_dir}/signing_key.gpg
 
   cd "${opwd}"
 }

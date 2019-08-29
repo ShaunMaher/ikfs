@@ -21,6 +21,7 @@ script_dir=$(dirname $(readlink -f "${0}"))
 local_patches_dir="${script_dir}/patches"
 
 source "${script_dir}/ikfs-common"
+source "ikfs.conf"
 echo "Kernel codename: '${kernel_codename}'"
 echo "Target CPU Architecture: ${os_cpu}"
 

@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+script_dir=$(dirname $(readlink -f "${0}"))
+log_dir=${script_dir}
+
+source "ikfs.conf"
+
+for build in $(seq 0 $(( ${#build_arch[@]} - 1 )) ); do
+  echo "Processing ${build_os_name[$build]} / ${build_arch[$build]} / ${build_kernel_name_suffix[$build]}"
+  if [ "${build_os_name[$build]}" = "ubuntu" ]; then
+    git_url="git://kernel.ubuntu.com/ubuntu/${build_os_name[$build]}-${build_kernel_codename[$build]}.git"
+  fi
+
+  if [ -f "${log_dir}/build-results.txt" ]; then
+    last_build_commit=$(
+      cat "${log_dir}/build-results.txt" |\
+      grep "${build_os_name[$build]}|${build_arch[$build]}|${build_kernel_name_suffix[$build]}" |\
+      tail -1 |\
+      awk 'BEGIN{FS="|"}{print $4}' \
+    )
+  fi
+
+  last_git_commit=$(
+    git ls-remote "${git_url}" |\
+    grep "refs/heads/${build_kernel_branch[$build]}$" |\
+    awk '{print $1}' \
+  )
+  echo -e "\tLast upstream commit:\t'${last_git_commit}'."
+  echo -e "\tLast build commit:\t'${last_build_commit}'"
+  if [ "${last_git_commit}" = "${last_build_commit}" ]; then
+    echo -e "\tThe current upstream version has already been built."
+    continue
+  fi
+
+  log_file="${log_dir}/${build_os_name[$build]}_${build_arch[$build]}_${build_kernel_name_suffix[$build]}_${last_git_commit}.log"
+  #./ikfs \
+  #  --kernel-name-suffix="${build_kernel_name_suffix[$build]}" \
+  #  --kernel-builders-name="${kernel_builders_name}" \
+  #  --kernel-codename=${build_kernel_codename[$build]} \
+  #  --kernel-git-branch=${build_kernel_branch[$build]} \
+  #  --arch="${build_arch[$build]}" \
+  #  2>&1 | tee "${log_file}""
+  true
+  echo "${build_os_name[$build]}|${build_arch[$build]}|${build_kernel_name_suffix[$build]}|${last_git_commit}|$?" >>"${log_dir}/build-results.txt"
+done

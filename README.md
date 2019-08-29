@@ -137,6 +137,37 @@ The following article suggests that you can combine kernel, initramfs and
 commandline into a single signed file after compile time:
 https://bentley.link/secureboot/
 
+## Remote unlock of ZFS Root File System
+
+https://hamy.io/post/0009/how-to-install-luks-encrypted-ubuntu-18.04.x-server-and-enable-remote-unlocking/
+
+The following script will prompt the SSH connected user for the unlock password
+for the ZFS root filesystem and then resume the boot process.
+`/usr/share/initramfs-tools/scripts/unlock-zfs-root`
+```
+# Source the ZFS functions
+. /scripts/zfs
+
+root=$(ps | grep -v grep | grep 'zfs load-key' | awk '{print $NF}')
+load_key_pid=$(ps | grep -v grep | grep 'zfs load-key' | awk '{print $1}')
+
+if [ ! "x${root}" = "x" ] && [ ! "x${load_key_pid}" = "x" ]; then
+  decrypt_fs $root
+  kill $load_key_pid
+  exit 1
+else
+  echo "Unable to find the \"zfs load-key\" process."
+  exit 1
+fi
+```
+
+Adding the following line to `/etc/dropbear-initramfs/authorized_keys` will
+result in the unlock script being launched as soon as a user authenticates with
+the private key and then log them out once they have entered the password.
+```
+no-port-forwarding,no-agent-forwarding,no-x11-forwarding,command="/scripts/unlock-zfs-root <public key here>"
+```
+
 ## History - So I don't try to fix things the same incorrect way twice
 ### Alternatives to using gcc-8 for builds of the eoan kernel
 The error message about your compiler not supporting retpoline is mis-leading.

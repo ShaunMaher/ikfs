@@ -6,7 +6,9 @@ function die () {
   echo "${@}" 1>&2
 
   echo "Starting a bash shell.  Press CTRL+d to quit."
-  bash
+  bash -i
+
+  cleanup
 
   if [ ! "${ikfs_starttime}" = "" ]; then
     local runtime=$(( $(date +%s) - $ikfs_starttime ))
@@ -18,13 +20,6 @@ function die () {
 function usage () {
   echo "TODO: Write Usage information"
 }
-
-# For now, put config here.
-debian_zfs_sources_url_experimental="http://http.us.debian.org/debian/dists/experimental/contrib/source/Sources.xz"
-debian_zfs_sources_url_unstable="http://http.us.debian.org/debian/dists/experimental/contrib/source/Sources.xz"
-ubuntu_zfs_sources_url="http://archive.ubuntu.com/ubuntu/dists/{kernel_codename}/main/source/Sources.xz"
-ubuntu_nvidia_sources_url="http://archive.ubuntu.com/ubuntu/dists/{kernel_codename}/restricted/binary-amd64/Packages.xz"
-ubuntu_virtualbox_sources_url="http://archive.ubuntu.com/ubuntu/dists/{kernel_codename}/multiverse/binary-amd64/Packages.xz"
 
 # Command line argument processing
 # We will try to use the same variable names and command line argument names

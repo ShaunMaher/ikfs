@@ -10,7 +10,14 @@ if [ ! "${USER}" == "root" ]; then
   exit 1
 fi
 
+# I found myself getting inotify errors in applications after running this
+#  process a few times.  I assume that something is leaking.  As a workaround I
+#  bumped up the max_user_watches from 8192 to 65535 by running the following:
+#echo fs.inotify.max_user_watches=65535 | sudo tee /etc/sysctl.d/40-max-user-watches.conf && sudo sysctl --system
+
 ikfs_starttime=$(date +%s)
+use_zfs_for_chroot="${use_zfs_for_chroot:-1}"
+zfs_chroot_template_dataset="SSD1/ikfs/chroot-templates"
 os_name="${os_name:-ubuntu}"
 os_cpu="${os_cpu:-$(uname -p)}"
 build_cpu="${build_cpu:-$(uname -p)}"
@@ -20,18 +27,20 @@ kernel_codename="${os_codename}"
 kernel_builders_name="${kernel_builders_name:-${SUDO_USER:-${USER}}} <${kernel_builders_name:-${SUDO_USER:-${USER}}}@$(hostname -f)>"
 
 source "ikfs-common"
+source "ikfs.conf"
 
-tmp_dir="${tmp_dir:-$(mktemp -d /tmp/ikfs.XXXXXXXXXX)}"
+use_gpg_agent=${use_gpg_agent:-0}
+tmp_dir="${tmp_dir:-$(mktemp -d /tmp/build-temp/ikfs.XXXXXXXXXX)}"
 script_dir=$(dirname $(readlink -f "${0}"))
-repository_dir="${script_dir}/repository"
+repository_dir=$(dirname "${script_dir}")"/repository"
 local_patches_dir="${script_dir}/patches"
 chroot_template_dir="${script_dir}/templates/chroot"
 
 # For cross compile using local cpu arch:
-chroot_template_name="ikfs-${os_codename}-${build_cpu}.tgz"
+#chroot_template_name="ikfs-${os_codename}-${build_cpu}.tgz"
 
 # For native compile emulating the target arch using qemu:
-#chroot_template_name="ikfs-${os_codename}-${os_cpu}.tgz"
+chroot_template_name="ikfs-${os_codename}-${os_cpu}.tgz"
 
 chroot_dir="${tmp_dir}/chroot/"
 gpg_signing_uid="shaun@ghanima.net"
@@ -52,10 +61,10 @@ function download_base_rootfs () {
 
 function download_ubuntu_base_rootfs () {
   # For cross compile using local cpu arch:
-  wget -O "${chroot_template_dir}/${chroot_template_name}" "http://cdimage.ubuntu.com/ubuntu-base/releases/${os_codename}/release/ubuntu-base-${os_release}-base-${build_cpu}.tar.gz"
+  #wget -O "${chroot_template_dir}/${chroot_template_name}" "http://cdimage.ubuntu.com/ubuntu-base/releases/${os_codename}/release/ubuntu-base-${os_release}-base-${build_cpu}.tar.gz"
 
   # For native compile emulating the target arch using qemu:
-  #wget -O "${chroot_template_dir}/${chroot_template_name}" "http://cdimage.ubuntu.com/ubuntu-base/releases/${os_codename}/release/ubuntu-base-${os_release}-base-${os_cpu_alt_name}.tar.gz"
+  wget -O "${chroot_template_dir}/${chroot_template_name}" "http://cdimage.ubuntu.com/ubuntu-base/releases/${os_codename}/release/ubuntu-base-${os_release}-base-${os_cpu_alt_name}.tar.gz"
   return $?
 }
 
@@ -79,22 +88,43 @@ function cleanup () {
     if [ -d "${tmp_dir}/chroot/dev" ]; then
       if [ -d "${tmp_dir}/chroot/dev/pts" ]; then
         umount "${tmp_dir}/chroot/dev/pts" 2>/dev/null
+        sleep 5
       fi
       umount "${tmp_dir}/chroot/dev" 2>/dev/null
+      sleep 5
     fi
     if [ -d "${tmp_dir}/chroot/proc" ]; then
       umount "${tmp_dir}/chroot/proc" 2>/dev/null
+      sleep 5
     fi
     if [ -d "${tmp_dir}/chroot/sys" ]; then
       umount "${tmp_dir}/chroot/sys" 2>/dev/null
+      sleep 5
     fi
+  fi
+
+  if [ ! "${zfs_clone}" = "" ]; then
+    echo "Destroying ZFS dataset (cloned from template): '${zfs_clone}'..."
+    zfs destroy "${zfs_clone}"
+  fi
+  if [ ! "${zfs_template_snapshot}" = "" ]; then
+    echo "Destroying ZFS dataset (snapshot of template): '${zfs_template_snapshot}'..."
+    zfs destroy "${zfs_template_snapshot}"
+  fi
+
+  if [ -d "${tmp_dir}/chroot" ]; then
     rm -fr "${tmp_dir}/chroot"
   fi
   rm -fr "${tmp_dir}/"
 }
 
 # Start gpg-agent
-gpg-agent --homedir /home/work/.gnupg --use-standard-socket --daemon --default-cache-ttl 86400
+if [ $use_gpg_agent -gt 0 ]; then
+  gpg-agent --homedir /home/work/.gnupg --use-standard-socket --daemon --default-cache-ttl 86400
+  gpg_pin_entry="ask"
+else
+  gpg_pin_entry="loopback"
+fi
 
 mkdir -p "${chroot_template_dir}/"
 mkdir -p "${chroot_dir}/"
@@ -106,8 +136,50 @@ if [ ! -f "${chroot_template_dir}/${chroot_template_name}" ]; then
   fi
 fi
 
-echo "Extracting base image from template '${chroot_template_name}'..."
-tar -C "${chroot_dir}/" -xzf "${chroot_template_dir}/${chroot_template_name}" || die "Failed to extract base image from template file '${chroot_template_dir}/${chroot_template_name}'."
+if [ $use_zfs_for_chroot -gt 0 ]; then
+  if [ $(zfs list "${zfs_chroot_template_dataset}/${os_codename}-${os_cpu}" | grep -v '^NAME[[:space:]]' | wc -l) -gt 0 ]; then
+    echo "A suitable chroot template ZFS dataset exists for this build: '${zfs_chroot_template_dataset}/${os_codename}-${os_cpu}'."
+  else
+    echo "Creating ZFS chroot template dataset: '${zfs_chroot_template_dataset}/${os_codename}-${os_cpu}'"
+    zfs create -o mountpoint=legacy "${zfs_chroot_template_dataset}/${os_codename}-${os_cpu}"
+  fi
+
+  # We need to make sure that the source ZFS dataset actaully contains content.
+  #  Before we do that though, we need to mount it somewhere.
+  zfs_template_mountpoint=$(zfs list "${zfs_chroot_template_dataset}/${os_codename}-${os_cpu}" | tail -1 | awk '{print $NF}')
+  if [ "${zfs_template_mountpoint}" = "legacy" ] || [ "${zfs_template_mountpoint}" = "-" ]; then
+    zfs_template_mountpoint=$(mktemp -d)
+    echo "ZFS dataset '${zfs_chroot_template_dataset}/${os_codename}-${os_cpu}' will be mounted at '${zfs_template_mountpoint}' temporarially so we can check it's content."
+    zfs set mountpoint=legacy "${zfs_chroot_template_dataset}/${os_codename}-${os_cpu}" || die
+    mount -t zfs "${zfs_chroot_template_dataset}/${os_codename}-${os_cpu}" "${zfs_template_mountpoint}" || die
+  fi
+
+  #TODO: check the source dataset has content
+  if [ -d "${zfs_template_mountpoint}/bin" ] && [ -d "${zfs_template_mountpoint}/var" ]; then
+    echo "Template looks OK.  In thge future though, we problbly want to check harder."
+  else
+    echo "Extracting base image from template '${chroot_template_name}' into the ZFS tempate dataset '${zfs_chroot_template_dataset}/${os_codename}-${os_cpu}'..."
+    pv -f "${chroot_template_dir}/${chroot_template_name}" | tar -C "${zfs_template_mountpoint}/" -xzf - || die "Failed to extract base image from template file '${chroot_template_dir}/${chroot_template_name}'."
+  fi
+  zfs set mountpoint=legacy "${zfs_chroot_template_dataset}/${os_codename}-${os_cpu}" || die
+  # The above should have unmounted the dataset.  This is just a precaution.
+  umount "${zfs_template_mountpoint}" 2>/dev/null
+
+  now=$(date +%s)
+  zfs_template_snapshot="${zfs_chroot_template_dataset}/${os_codename}-${os_cpu}@${now}"
+  zfs_clone="${zfs_chroot_template_dataset}/${os_codename}-${os_cpu}_clone_${now}"
+  echo "Creating a new ZFS snapshot '${zfs_template_snapshot}'..."
+  zfs snapshot "${zfs_template_snapshot}" || die
+  echo "Creating clone of the ZFS template dataset called '${zfs_clone}'..."
+  zfs clone "${zfs_template_snapshot}" "${zfs_clone}" || die
+  echo "Mounting ZFS dataset '${zfs_clone}' at '${chroot_dir}'..."
+  zfs set mountpoint="${chroot_dir}/" "${zfs_clone}" || die
+  #zfs mount "${zfs_clone}"
+else
+  echo "Extracting base image from template '${chroot_template_name}'..."
+  #tar -C "${chroot_dir}/" -xzf "${chroot_template_dir}/${chroot_template_name}" || die "Failed to extract base image from template file '${chroot_template_dir}/${chroot_template_name}'."
+  pv -f "${chroot_template_dir}/${chroot_template_name}" | tar -C "${chroot_dir}/" -xzf - || die "Failed to extract base image from template file '${chroot_template_dir}/${chroot_template_name}'."
+fi
 
 echo "Mounting special filesystems in chroot..."
 mount --bind /dev "${chroot_dir}/dev/" || die "Failed to mount '/dev' within the chroot.  Possible permissions issue?  Did you execute this script with sudo?"
@@ -118,7 +190,7 @@ mkdir -p "${chroot_dir}/tmp/ikfs/" || die "Failed to create a temporary director
 
 if [ -f "${script_dir}/signing_key.pem.gpg" ]; then
   echo "Decrypting and extracting the Linux kernel signing key into the chroot"
-  gpg -a --yes --output ${chroot_dir}/tmp/ikfs/signing_key.pem --decrypt signing_key.pem.gpg
+  gpg --pinentry-mode $gpg_pin_entry -a --yes --output ${chroot_dir}/tmp/ikfs/signing_key.pem --decrypt signing_key.pem.gpg
 else
   echo "No Linux kernel signing key was found.  One will be automatically generated.  If you need a signed kernel and modules for Secure Boot, please review the README.md file for instructions for creating a static signing key."
 fi
@@ -132,9 +204,10 @@ fi
 #  patch the debian/rules file to not disable ZFS or use the slower Qemu method.
 # The slower Qemu method does require the build system has the following
 #  packages installed:
-#  * qemu
+#  * qemu-system-arm
 #  * qemu-user-static
 #  * binfmt-support
+# At the moment, I am unable to get ZFS to compile properly with a cross compile
 
 if [ ! "${build_cpu}" = "${os_cpu}" ]; then
 # TODO: if the chroot is for a different archetecture from the host, we need to
@@ -151,21 +224,10 @@ chroot "${chroot_dir}/" /bin/bash /tmp/ikfs/ikfs-chroot \
   --os-codename="${os_codename}" \
   --kernel-name-suffix="${kernel_name_suffix}" \
   --kernel-builders-name="${kernel_builders_name}" || \
-  die "A process withing the chroot failed.  See the above output for more information."
+  die "A process within the chroot failed.  See the above output for more information."
 
-#TODO: Signing kernel and modules
-# *I think* you might simply be able to drop a signing_key.pem and TODO into the
-#  certs directory in the root of the kernel source tree
-# https://kernel.ubuntu.com/git/ubuntu/ubuntu-disco.git/tree/certs/Makefile line ~58
-# https://kernel.ubuntu.com/git/ubuntu/ubuntu-disco.git/tree/debian/rules.d/2-binary-arch.mk line 56, 106, 287
-# How do I generate some signing keys though and store them securly while still
-#  allowing this process to be automated?
-
-#TODO: We need a patch to
-#  * Change the maintainer name and email address.  We should not give the
-#    impression that Canonical are responsible for our kernels
-#    see: https://manpages.debian.org/jessie/devscripts/dch.1.en.html
-#  * Replace "generic" with "personal" (or something)
+buildtime=$(( $(date +%s) - $ikfs_starttime ))
+echo "Total run time of build process: ${buildtime} seconds"
 
 # Result is in "${chroot_dir}/usr/src/*.deb"
 this_repo_dir="${repository_dir}/${os_name}"
@@ -177,7 +239,7 @@ else
   echo "A helper script for updating ${os_name} repositories doesn't exist yet.  Sorry."
 fi
 
-#cleanup
+cleanup
 
 runtime=$(( $(date +%s) - $ikfs_starttime ))
 echo "Total run time: ${runtime} seconds"
