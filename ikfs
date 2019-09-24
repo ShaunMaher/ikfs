@@ -16,8 +16,9 @@ fi
 #echo fs.inotify.max_user_watches=65535 | sudo tee /etc/sysctl.d/40-max-user-watches.conf && sudo sysctl --system
 
 ikfs_starttime=$(date +%s)
+script_dir=$(dirname $(readlink -f "${0}"))
+
 use_zfs_for_chroot="${use_zfs_for_chroot:-1}"
-zfs_chroot_template_dataset="SSD1/ikfs/chroot-templates"
 os_name="${os_name:-ubuntu}"
 os_cpu="${os_cpu:-$(uname -p)}"
 build_cpu="${build_cpu:-$(uname -p)}"
@@ -26,12 +27,11 @@ os_release=$(lsb_release -r | awk '{print $2}')
 kernel_codename="${os_codename}"
 kernel_builders_name="${kernel_builders_name:-${SUDO_USER:-${USER}}} <${kernel_builders_name:-${SUDO_USER:-${USER}}}@$(hostname -f)>"
 
-source "ikfs-common"
-source "ikfs.conf"
+source "${script_dir}/ikfs-common"
+source "${script_dir}/ikfs.conf"
 
 use_gpg_agent=${use_gpg_agent:-0}
 tmp_dir="${tmp_dir:-$(mktemp -d /tmp/build-temp/ikfs.XXXXXXXXXX)}"
-script_dir=$(dirname $(readlink -f "${0}"))
 repository_dir=$(dirname "${script_dir}")"/repository"
 local_patches_dir="${script_dir}/patches"
 chroot_template_dir="${script_dir}/templates/chroot"
@@ -43,7 +43,6 @@ chroot_template_dir="${script_dir}/templates/chroot"
 chroot_template_name="ikfs-${os_codename}-${os_cpu}.tgz"
 
 chroot_dir="${tmp_dir}/chroot/"
-gpg_signing_uid="shaun@ghanima.net"
 
 echo "Using temp directory: '${tmp_dir}'"
 echo "Kernel codename: '${kernel_codename}'"
@@ -156,7 +155,7 @@ if [ $use_zfs_for_chroot -gt 0 ]; then
 
   #TODO: check the source dataset has content
   if [ -d "${zfs_template_mountpoint}/bin" ] && [ -d "${zfs_template_mountpoint}/var" ]; then
-    echo "Template looks OK.  In thge future though, we problbly want to check harder."
+    echo "Template looks OK.  In the future though, we problbly want to check harder."
   else
     echo "Extracting base image from template '${chroot_template_name}' into the ZFS tempate dataset '${zfs_chroot_template_dataset}/${os_codename}-${os_cpu}'..."
     pv -f "${chroot_template_dir}/${chroot_template_name}" | tar -C "${zfs_template_mountpoint}/" -xzf - || die "Failed to extract base image from template file '${chroot_template_dir}/${chroot_template_name}'."
@@ -190,7 +189,9 @@ mkdir -p "${chroot_dir}/tmp/ikfs/" || die "Failed to create a temporary director
 
 if [ -f "${script_dir}/signing_key.pem.gpg" ]; then
   echo "Decrypting and extracting the Linux kernel signing key into the chroot"
-  gpg --pinentry-mode $gpg_pin_entry -a --yes --output ${chroot_dir}/tmp/ikfs/signing_key.pem --decrypt signing_key.pem.gpg
+  echo "gpg --pinentry-mode $gpg_pin_entry -a --yes --output ${chroot_dir}/tmp/ikfs/signing_key.pem --decrypt signing_key.pem.gpg"
+  gpg --pinentry-mode $gpg_pin_entry -a --yes --output ${chroot_dir}/tmp/ikfs/signing_key.pem --decrypt signing_key.pem.gpg ||\
+    die "Unable to decrypt 'signing_key.pem.gpg'"
 else
   echo "No Linux kernel signing key was found.  One will be automatically generated.  If you need a signed kernel and modules for Secure Boot, please review the README.md file for instructions for creating a static signing key."
 fi

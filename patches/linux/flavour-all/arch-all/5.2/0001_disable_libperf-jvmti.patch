@@ -1,0 +1,12 @@
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/debian.master/rules.d/arm64.mk ./debian.master/rules.d/arm64.mk
+--- ../ubuntu-eoan.orig/debian.master/rules.d/arm64.mk	2019-08-05 15:03:23.000000000 +1000
++++ ./debian.master/rules.d/arm64.mk	2019-08-05 16:01:49.284687378 +1000
+@@ -16,7 +16,7 @@
+ do_tools_usbip  = true
+ do_tools_cpupower = true
+ do_tools_perf   = true
+-do_tools_perf_jvmti = true
++do_tools_perf_jvmti = false
+ 
+ do_dtbs		= true
+ do_zfs		= true

@@ -70,12 +70,14 @@ Download Minio: TODO
 ```
 mkdir repository/.minio
 minio --config-dir ./repository/.minio server ./repository
-mc policy download localhost/ubuntu
+mc policy set download localhost/ubuntu
 ```
 
 ### Add your repository to a machine
 ```
 echo "deb [arch=amd64] http://172.30.0.201:9000/ubuntu bionic main contrib non-free" | sudo tee /etc/apt/sources.list.d/signed-kernels.list
+or
+echo "deb [arch=arm64] http://172.30.0.201:9000/ubuntu bionic main contrib non-free" | sudo tee /etc/apt/sources.list.d/signed-kernels.list
 wget -O- http://172.30.0.201:9000/ubuntu/signing_key.gpg | sudo apt-key add -
 ```
 

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+if [ $0 != $BASH_SOURCE ]; then
+  script_dir=$(dirname $(readlink -f "${BASH_SOURCE}"))
+else
+  script_dir=$(dirname $(readlink -f "${0}"))
+fi
+source "${script_dir}/ikfs-common"
+source "${script_dir}/ikfs.conf"
+
+if [ $use_gpg_agent -gt 0 ]; then
+  gpg_pin_entry="ask"
+else
+  gpg_pin_entry="loopback"
+fi
+
+gpg --pinentry-mode $gpg_pin_entry -a --yes --output ${this_repo_dir}/dists/${os_codename}/Release.gpg --local-user "${gpg_signing_uid}" --detach-sign ${this_repo_dir}/dists/${os_codename}/Release
+
+gpg --pinentry-mode $gpg_pin_entry -a --yes --clearsign --output ${this_repo_dir}/dists/${os_codename}/InRelease --local-user "${gpg_signing_uid}" --detach-sign ${this_repo_dir}/dists/${os_codename}/Release
+
+gpg --pinentry-mode $gpg_pin_entry --export "${gpg_signing_uid}" >${this_repo_dir}/signing_key.gpg

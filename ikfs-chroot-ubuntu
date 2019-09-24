@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
 
 # TODO: build depends only on amd64 and i386: makedumpfile
+if [ $0 != $BASH_SOURCE ]; then
+  script_dir=$(dirname $(readlink -f "${BASH_SOURCE}"))
+else
+  script_dir=$(dirname $(readlink -f "${0}"))
+fi
 
 os_cpu="${os_cpu:-$(uname -p)}"
 build_cpu="${build_cpu:-$(uname -p)}"
 os_codename="${os_codename:-$(lsb_release -c | awk '{print $2}')}"
 os_release="${os_release:-$(lsb_release -r | awk '{print $2}')}"
-build_depends="equivs dkms wget kmod libelf-dev kernel-wedge rsync gawk debhelper git locales dh-systemd libnewt-dev libiberty-dev libdw-dev pkg-config libunwind8-dev liblzma-dev openssl libaudit-dev python-dev libudev-dev autoconf automake uuid-dev binutils-dev libnuma-dev xmlto docbook-utils ghostscript fig2dev bzip2 sharutils asciidoc python-sphinx python-sphinx-rtd-theme dh-autoreconf tzdata python3-distutils python3-lib2to3 ${build_depends}"
-script_dir=$(dirname $(readlink -f "${0}"))
+build_depends="equivs dkms wget kmod libelf-dev kernel-wedge rsync gawk debhelper git locales dh-systemd libnewt-dev libiberty-dev libdw-dev pkg-config libunwind8-dev liblzma-dev openssl libaudit-dev python-dev libudev-dev autoconf automake uuid-dev binutils-dev libnuma-dev xmlto docbook-utils ghostscript fig2dev bzip2 sharutils asciidoc python-sphinx python-sphinx-rtd-theme dh-autoreconf tzdata python3-distutils python3-lib2to3 liblz4-tool ${build_depends}"
 kernel_git_branch="${kernel_git_branch:-master}"
 kernel_src_dir=/usr/src/linux
 kernel_name_suffix="${kernel_name_suffix:-generic}"
 use_debian_zfs_package="${use_debian_zfs_package:-0}"
 
-source "${script_dir}/ikfs-common"
+source "${script_dir}/ikfs-common" || die "Unable to locate ikfs-common"
+source "${script_dir}/ikfs.conf" || die "Unable to locate ikfs.conf"
 
 # Inherit the default functions and settings from debian
 if [ -f "${script_dir}/ikfs-chroot-debian" ]; then
@@ -89,7 +94,9 @@ function configure_kernel () {
   # Change "generic" to something more personal
   if [ ! "${kernel_name_suffix}" = "generic" ]; then
     echo "Creating a new kernel flavour called '${kernel_name_suffix}'"
-    cp "debian.master/config/${os_cpu_alt_name}/config.flavour.generic" "debian.master/config/${os_cpu_alt_name}/config.flavour.${kernel_name_suffix}"
+    if [ ! -e "debian.master/config/${os_cpu_alt_name}/config.flavour.${kernel_name_suffix}" ]; then
+      cp "debian.master/config/${os_cpu_alt_name}/config.flavour.generic" "debian.master/config/${os_cpu_alt_name}/config.flavour.${kernel_name_suffix}"
+    fi
     cp "debian.master/control.d/vars.generic" "debian.master/control.d/vars.${kernel_name_suffix}"
     cp "debian.master/control.d/generic.inclusion-list" "debian.master/control.d/${kernel_name_suffix}.inclusion-list"
     sed -i "s/[[:space:]]generic[[:space:]]/\t${kernel_name_suffix}\t/g" debian.master/d-i/kernel-versions
@@ -449,6 +456,9 @@ saved_build_environment || \
 
 build_kernel_package || \
   die "[ERROR] Failed to build the kernel.  Cannot continue."
+
+echo "Starting a shell.  You want to find and capture Image.gz"
+bash -i
 
 #install_kernel_packages || \
 #  die "[ERROR] Failed to install the built kernel packages.  Cannot continue."
