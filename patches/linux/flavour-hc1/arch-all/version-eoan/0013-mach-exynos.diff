@@ -1,0 +1,11 @@
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/arch/arm/mach-exynos/Kconfig ./arch/arm/mach-exynos/Kconfig
+--- ../ubuntu-eoan.orig/arch/arm/mach-exynos/Kconfig	2019-10-30 11:17:15.000000000 +1100
++++ ./arch/arm/mach-exynos/Kconfig	2019-11-13 18:16:33.895365583 +1100
+@@ -13,6 +13,8 @@
+ 	select ARM_AMBA
+ 	select ARM_GIC
+ 	select COMMON_CLK_SAMSUNG
++        select EXYNOS_ASV
+ 	select EXYNOS_THERMAL
+ 	select EXYNOS_PMU
+ 	select EXYNOS_SROM

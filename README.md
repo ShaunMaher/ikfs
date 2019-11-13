@@ -75,10 +75,12 @@ mc policy set download localhost/ubuntu
 
 ### Add your repository to a machine
 ```
-echo "deb [arch=amd64] http://172.30.0.201:9000/ubuntu bionic main contrib non-free" | sudo tee /etc/apt/sources.list.d/signed-kernels.list
+echo "deb [arch=amd64] http://172.30.0.205:9000/ubuntu bionic main contrib non-free" | sudo tee /etc/apt/sources.list.d/signed-kernels.list
 or
-echo "deb [arch=arm64] http://172.30.0.201:9000/ubuntu bionic main contrib non-free" | sudo tee /etc/apt/sources.list.d/signed-kernels.list
-wget -O- http://172.30.0.201:9000/ubuntu/signing_key.gpg | sudo apt-key add -
+echo "deb [arch=arm64] http://172.30.0.205:9000/ubuntu bionic main contrib non-free" | sudo tee /etc/apt/sources.list.d/signed-kernels.list
+or
+echo "deb [arch=armhf] http://172.30.0.205:9000/ubuntu bionic main contrib non-free" | sudo tee /etc/apt/sources.list.d/signed-kernels.list
+wget -O- http://172.30.0.205:9000/ubuntu/signing_key.gpg | sudo apt-key add -
 ```
 
 ## Known issues and TODOs
@@ -169,6 +171,13 @@ the private key and then log them out once they have entered the password.
 ```
 no-port-forwarding,no-agent-forwarding,no-x11-forwarding,command="/scripts/unlock-zfs-root <public key here>"
 ```
+
+## MacBook Pro Touchbar Patches
+https://patchwork.kernel.org/cover/10910603/
+https://patchwork.kernel.org/patch/10910609/
+https://patchwork.kernel.org/patch/10910605/
+https://patchwork.kernel.org/patch/10910607/
+
 
 ## History - So I don't try to fix things the same incorrect way twice
 ### Alternatives to using gcc-8 for builds of the eoan kernel

@@ -129,4 +129,8 @@ case "${os_cpu}" in
     os_cpu="aarch64"
     os_cpu_alt_name="arm64"
     ;;
+  armhf|arm)
+    os_cpu="arm"
+    os_cpu_alt_name="armhf"
+    ;;
 esac

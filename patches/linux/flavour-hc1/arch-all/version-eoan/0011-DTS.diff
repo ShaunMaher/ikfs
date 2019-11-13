@@ -1,0 +1,1367 @@
+arch/arm/boot/dts/exynos5420.dtsi
+--- ../torvalds-linux/arch/arm/boot/dts/exynos5420.dtsi	2019-11-04 09:07:26.000000000 +1100
++++ arch/arm/boot/dts/exynos5420.dtsi	2019-11-12 19:47:38.419113298 +1100
+@@ -175,7 +175,7 @@
+ 		};
+ 
+ 		clock: clock-controller@10010000 {
+-			compatible = "samsung,exynos5420-clock";
++			compatible = "samsung,exynos5420-clock", "syscon";
+ 			reg = <0x10010000 0x30000>;
+ 			#clock-cells = <1>;
+ 		};
+@@ -237,6 +237,32 @@
+ 			status = "disabled";
+ 		};
+ 
++		dmc: memory-controller@10c20000 {
++			compatible = "samsung,exynos5422-dmc";
++			reg = <0x10c20000 0x10000>, <0x10c30000 0x10000>;
++			interrupt-parent = <&combiner>;
++			interrupts = <16 0>, <16 1>;
++			interrupt-names = "drex_0", "drex_1";
++			clocks = <&clock CLK_FOUT_SPLL>,
++				 <&clock CLK_MOUT_SCLK_SPLL>,
++				 <&clock CLK_FF_DOUT_SPLL2>,
++				 <&clock CLK_FOUT_BPLL>,
++				 <&clock CLK_MOUT_BPLL>,
++				 <&clock CLK_SCLK_BPLL>,
++				 <&clock CLK_MOUT_MX_MSPLL_CCORE>,
++				 <&clock CLK_MOUT_MCLK_CDREX>;
++			clock-names = "fout_spll",
++				      "mout_sclk_spll",
++				      "ff_dout_spll2",
++				      "fout_bpll",
++				      "mout_bpll",
++				      "sclk_bpll",
++				      "mout_mx_mspll_ccore",
++				      "mout_mclk_cdrex";
++			samsung,syscon-clk = <&clock>;
++			status = "disabled";
++		};
++
+ 		nocp_mem0_0: nocp@10ca1000 {
+ 			compatible = "samsung,exynos5420-nocp";
+ 			reg = <0x10CA1000 0x200>;
+@@ -273,6 +299,54 @@
+ 			status = "disabled";
+ 		};
+ 
++		ppmu_dmc0_0: ppmu@10d00000 {
++			compatible = "samsung,exynos-ppmu";
++			reg = <0x10d00000 0x2000>;
++			clocks = <&clock CLK_PCLK_PPMU_DREX0_0>;
++			clock-names = "ppmu";
++			events {
++				ppmu_event3_dmc0_0: ppmu-event3-dmc0_0 {
++					event-name = "ppmu-event3-dmc0_0";
++				};
++			};
++		};
++
++		ppmu_dmc0_1: ppmu@10d10000 {
++			compatible = "samsung,exynos-ppmu";
++			reg = <0x10d10000 0x2000>;
++			clocks = <&clock CLK_PCLK_PPMU_DREX0_1>;
++			clock-names = "ppmu";
++			events {
++				ppmu_event3_dmc0_1: ppmu-event3-dmc0_1 {
++					event-name = "ppmu-event3-dmc0_1";
++				};
++			};
++		};
++
++		ppmu_dmc1_0: ppmu@10d60000 {
++			compatible = "samsung,exynos-ppmu";
++			reg = <0x10d60000 0x2000>;
++			clocks = <&clock CLK_PCLK_PPMU_DREX1_0>;
++			clock-names = "ppmu";
++			events {
++				ppmu_event3_dmc1_0: ppmu-event3-dmc1_0 {
++					event-name = "ppmu-event3-dmc1_0";
++				};
++			};
++		};
++
++		ppmu_dmc1_1: ppmu@10d70000 {
++			compatible = "samsung,exynos-ppmu";
++			reg = <0x10d70000 0x2000>;
++			clocks = <&clock CLK_PCLK_PPMU_DREX1_1>;
++			clock-names = "ppmu";
++			events {
++				ppmu_event3_dmc1_1: ppmu-event3-dmc1_1 {
++					event-name = "ppmu-event3-dmc1_1";
++				};
++			};
++		};
++
+ 		gsc_pd: power-domain@10044000 {
+ 			compatible = "samsung,exynos4210-pd";
+ 			reg = <0x10044000 0x20>;
+@@ -670,6 +744,56 @@
+ 			iommus = <&sysmmu_gscl1>;
+ 		};
+ 
++		gpu: gpu@11800000 {
++			compatible = "samsung,exynos5420-mali", "arm,mali-t628";
++			reg = <0x11800000 0x5000>;
++			interrupts = <GIC_SPI 219 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 117 IRQ_TYPE_LEVEL_HIGH>;
++			interrupt-names = "job", "mmu", "gpu";
++
++			clocks = <&clock CLK_G3D>;
++			clock-names = "core";
++			power-domains = <&g3d_pd>;
++			operating-points-v2 = <&gpu_opp_table>;
++
++			status = "disabled";
++			#cooling-cells = <2>;
++
++			gpu_opp_table: opp-table {
++				compatible = "operating-points-v2";
++
++				opp@177000000 {
++					opp-hz = /bits/ 64 <177000000>;
++					opp-microvolt = <812500>;
++				};
++				opp@266000000 {
++					opp-hz = /bits/ 64 <266000000>;
++					opp-microvolt = <862500>;
++				};
++				opp@350000000 {
++					opp-hz = /bits/ 64 <350000000>;
++					opp-microvolt = <912500>;
++				};
++				opp-420000000 {
++					opp-hz = /bits/ 64 <420000000>;
++					opp-microvolt = <962500>;
++				};
++				opp-480000000 {
++					opp-hz = /bits/ 64 <480000000>;
++					opp-microvolt = <1000000>;
++				};
++				opp-543000000 {
++					opp-hz = /bits/ 64 <543000000>;
++					opp-microvolt = <1037500>;
++				};
++				opp-600000000 {
++					opp-hz = /bits/ 64 <600000000>;
++					opp-microvolt = <1150000>;
++				};
++			};
++		};
++
+ 		scaler_0: scaler@12800000 {
+ 			compatible = "samsung,exynos5420-scaler";
+ 			reg = <0x12800000 0x1294>;
+arch/arm/boot/dts/exynos5420-peach-pit.dts
+--- ../torvalds-linux/arch/arm/boot/dts/exynos5420-peach-pit.dts	2019-11-04 09:07:26.000000000 +1100
++++ arch/arm/boot/dts/exynos5420-peach-pit.dts	2019-11-12 19:47:38.419113298 +1100
+@@ -1065,6 +1065,10 @@
+ 	status = "okay";
+ };
+ 
++&timer {
++	arm,cpu-registers-not-fw-configured;
++};
++
+ &tmu_cpu0 {
+ 	vtmu-supply = <&ldo10_reg>;
+ };
+arch/arm/boot/dts/exynos5422-cpus.dtsi
+--- ../torvalds-linux/arch/arm/boot/dts/exynos5422-cpus.dtsi	2019-11-04 09:07:26.000000000 +1100
++++ arch/arm/boot/dts/exynos5422-cpus.dtsi	2019-11-12 19:47:38.419113298 +1100
+@@ -26,7 +26,7 @@
+ 			compatible = "arm,cortex-a7";
+ 			reg = <0x100>;
+ 			clocks = <&clock CLK_KFC_CLK>;
+-			clock-frequency = <1000000000>;
++			clock-frequency = <1400000000>;
+ 			cci-control-port = <&cci_control0>;
+ 			operating-points-v2 = <&cluster_a7_opp_table>;
+ 			#cooling-cells = <2>; /* min followed by max */
+@@ -38,7 +38,7 @@
+ 			compatible = "arm,cortex-a7";
+ 			reg = <0x101>;
+ 			clocks = <&clock CLK_KFC_CLK>;
+-			clock-frequency = <1000000000>;
++			clock-frequency = <1400000000>;
+ 			cci-control-port = <&cci_control0>;
+ 			operating-points-v2 = <&cluster_a7_opp_table>;
+ 			#cooling-cells = <2>; /* min followed by max */
+@@ -50,7 +50,7 @@
+ 			compatible = "arm,cortex-a7";
+ 			reg = <0x102>;
+ 			clocks = <&clock CLK_KFC_CLK>;
+-			clock-frequency = <1000000000>;
++			clock-frequency = <1400000000>;
+ 			cci-control-port = <&cci_control0>;
+ 			operating-points-v2 = <&cluster_a7_opp_table>;
+ 			#cooling-cells = <2>; /* min followed by max */
+@@ -62,7 +62,7 @@
+ 			compatible = "arm,cortex-a7";
+ 			reg = <0x103>;
+ 			clocks = <&clock CLK_KFC_CLK>;
+-			clock-frequency = <1000000000>;
++			clock-frequency = <1400000000>;
+ 			cci-control-port = <&cci_control0>;
+ 			operating-points-v2 = <&cluster_a7_opp_table>;
+ 			#cooling-cells = <2>; /* min followed by max */
+@@ -74,7 +74,7 @@
+ 			compatible = "arm,cortex-a15";
+ 			reg = <0x0>;
+ 			clocks = <&clock CLK_ARM_CLK>;
+-			clock-frequency = <1800000000>;
++			clock-frequency = <2000000000>;
+ 			cci-control-port = <&cci_control1>;
+ 			operating-points-v2 = <&cluster_a15_opp_table>;
+ 			#cooling-cells = <2>; /* min followed by max */
+@@ -86,7 +86,7 @@
+ 			compatible = "arm,cortex-a15";
+ 			reg = <0x1>;
+ 			clocks = <&clock CLK_ARM_CLK>;
+-			clock-frequency = <1800000000>;
++			clock-frequency = <2000000000>;
+ 			cci-control-port = <&cci_control1>;
+ 			operating-points-v2 = <&cluster_a15_opp_table>;
+ 			#cooling-cells = <2>; /* min followed by max */
+@@ -98,7 +98,7 @@
+ 			compatible = "arm,cortex-a15";
+ 			reg = <0x2>;
+ 			clocks = <&clock CLK_ARM_CLK>;
+-			clock-frequency = <1800000000>;
++			clock-frequency = <2000000000>;
+ 			cci-control-port = <&cci_control1>;
+ 			operating-points-v2 = <&cluster_a15_opp_table>;
+ 			#cooling-cells = <2>; /* min followed by max */
+@@ -110,7 +110,7 @@
+ 			compatible = "arm,cortex-a15";
+ 			reg = <0x3>;
+ 			clocks = <&clock CLK_ARM_CLK>;
+-			clock-frequency = <1800000000>;
++			clock-frequency = <2000000000>;
+ 			cci-control-port = <&cci_control1>;
+ 			operating-points-v2 = <&cluster_a15_opp_table>;
+ 			#cooling-cells = <2>; /* min followed by max */
+arch/arm/boot/dts/exynos5422-odroid-core.dtsi
+--- ../torvalds-linux/arch/arm/boot/dts/exynos5422-odroid-core.dtsi	2019-11-04 09:07:26.000000000 +1100
++++ arch/arm/boot/dts/exynos5422-odroid-core.dtsi	2019-11-12 19:47:38.423113307 +1100
+@@ -34,6 +34,97 @@
+ 			clock-frequency = <24000000>;
+ 		};
+ 	};
++
++	dmc_opp_table: opp_table2 {
++		compatible = "operating-points-v2";
++
++		opp00 {
++			opp-hz = /bits/ 64 <165000000>;
++			opp-microvolt = <875000>;
++		};
++		opp01 {
++			opp-hz = /bits/ 64 <206000000>;
++			opp-microvolt = <875000>;
++		};
++		opp02 {
++			opp-hz = /bits/ 64 <275000000>;
++			opp-microvolt = <875000>;
++		};
++		opp03 {
++			opp-hz = /bits/ 64 <413000000>;
++			opp-microvolt = <887500>;
++		};
++		opp04 {
++			opp-hz = /bits/ 64 <543000000>;
++			opp-microvolt = <937500>;
++		};
++		opp05 {
++			opp-hz = /bits/ 64 <633000000>;
++			opp-microvolt = <1012500>;
++		};
++		opp06 {
++			opp-hz = /bits/ 64 <728000000>;
++			opp-microvolt = <1037500>;
++		};
++		opp07 {
++			opp-hz = /bits/ 64 <825000000>;
++			opp-microvolt = <1050000>;
++		};
++	};
++
++	samsung_K3QF2F20DB: lpddr3 {
++		compatible	= "samsung,K3QF2F20DB", "jedec,lpddr3";
++		density		= <16384>;
++		io-width	= <32>;
++		#address-cells  = <1>;
++		#size-cells     = <0>;
++
++		tRFC-min-tck		= <17>;
++		tRRD-min-tck		= <2>;
++		tRPab-min-tck		= <2>;
++		tRPpb-min-tck		= <2>;
++		tRCD-min-tck		= <3>;
++		tRC-min-tck		= <6>;
++		tRAS-min-tck		= <5>;
++		tWTR-min-tck		= <2>;
++		tWR-min-tck		= <7>;
++		tRTP-min-tck		= <2>;
++		tW2W-C2C-min-tck	= <0>;
++		tR2R-C2C-min-tck	= <0>;
++		tWL-min-tck		= <8>;
++		tDQSCK-min-tck		= <5>;
++		tRL-min-tck		= <14>;
++		tFAW-min-tck		= <5>;
++		tXSR-min-tck		= <12>;
++		tXP-min-tck		= <2>;
++		tCKE-min-tck		= <2>;
++		tCKESR-min-tck		= <2>;
++		tMRD-min-tck		= <5>;
++
++		timings_samsung_K3QF2F20DB_800mhz: lpddr3-timings@800000000 {
++			compatible	= "jedec,lpddr3-timings";
++			reg		= <800000000>; /* workaround: it shows max-freq */
++			min-freq	= <100000000>;
++			tRFC		= <65000>;
++			tRRD		= <6000>;
++			tRPab		= <12000>;
++			tRPpb		= <12000>;
++			tRCD		= <10000>;
++			tRC		= <33750>;
++			tRAS		= <23000>;
++			tWTR		= <3750>;
++			tWR		= <7500>;
++			tRTP		= <3750>;
++			tW2W-C2C	= <0>;
++			tR2R-C2C	= <0>;
++			tFAW		= <25000>;
++			tXSR		= <70000>;
++			tXP		= <3750>;
++			tCKE		= <3750>;
++			tCKESR		= <3750>;
++			tMRD		= <7000>;
++		};
++	};
+ };
+ 
+ &adc {
+@@ -132,6 +223,15 @@
+ 	cpu-supply = <&buck2_reg>;
+ };
+ 
++&dmc {
++	devfreq-events = <&ppmu_event3_dmc0_0>,	<&ppmu_event3_dmc0_1>,
++			<&ppmu_event3_dmc1_0>, <&ppmu_event3_dmc1_1>;
++	device-handle = <&samsung_K3QF2F20DB>;
++	operating-points-v2 = <&dmc_opp_table>;
++	vdd-supply = <&buck1_reg>;
++	status = "okay";
++};
++
+ &hsi2c_4 {
+ 	status = "okay";
+ 
+@@ -522,7 +622,6 @@
+ 				regulator-name = "vdd_g3d";
+ 				regulator-min-microvolt = <800000>;
+ 				regulator-max-microvolt = <1400000>;
+-				regulator-always-on;
+ 				regulator-boot-on;
+ 
+ 				regulator-state-mem {
+@@ -634,24 +733,50 @@
+ 	};
+ };
+ 
++&ppmu_dmc0_0 {
++	status = "okay";
++};
++
++&ppmu_dmc0_1 {
++	status = "okay";
++};
++
++&ppmu_dmc1_0 {
++	status = "okay";
++};
++
++&ppmu_dmc1_1 {
++	status = "okay";
++};
++
+ &tmu_cpu0 {
+ 	vtmu-supply = <&ldo7_reg>;
++	status = "okay";
+ };
+ 
+ &tmu_cpu1 {
+ 	vtmu-supply = <&ldo7_reg>;
++	status = "okay";
+ };
+ 
+ &tmu_cpu2 {
+ 	vtmu-supply = <&ldo7_reg>;
++	status = "okay";
+ };
+ 
+ &tmu_cpu3 {
+ 	vtmu-supply = <&ldo7_reg>;
++	status = "okay";
+ };
+ 
+ &tmu_gpu {
+ 	vtmu-supply = <&ldo7_reg>;
++	status = "okay";
++};
++
++&gpu {
++	mali-supply = <&buck4_reg>;
++	status = "okay";
+ };
+ 
+ &rtc {
+arch/arm/boot/dts/exynos5422-odroidhc1.dts
+--- ../torvalds-linux/arch/arm/boot/dts/exynos5422-odroidhc1.dts	2019-11-04 09:07:26.000000000 +1100
++++ arch/arm/boot/dts/exynos5422-odroidhc1.dts	2019-11-12 19:47:38.423113307 +1100
+@@ -30,190 +30,27 @@
+ 	thermal-zones {
+ 		cpu0_thermal: cpu0-thermal {
+ 			thermal-sensors = <&tmu_cpu0 0>;
+-			trips {
+-				cpu0_alert0: cpu-alert-0 {
+-					temperature = <70000>; /* millicelsius */
+-					hysteresis = <10000>; /* millicelsius */
+-					type = "active";
+-				};
+-				cpu0_alert1: cpu-alert-1 {
+-					temperature = <85000>; /* millicelsius */
+-					hysteresis = <10000>; /* millicelsius */
+-					type = "active";
+-				};
+-				cpu0_crit0: cpu-crit-0 {
+-					temperature = <120000>; /* millicelsius */
+-					hysteresis = <0>; /* millicelsius */
+-					type = "critical";
+-				};
+-			};
+-
+-			cooling-maps {
+-				/*
+-				 * When reaching cpu0_alert0, reduce CPU
+-				 * by 2 steps. On Exynos5422/5800 that would
+-				 * be: 1600 MHz and 1100 MHz.
+-				 */
+-				map0 {
+-					trip = <&cpu0_alert0>;
+-					cooling-device = <&cpu0 0 2>,
+-							 <&cpu1 0 2>,
+-							 <&cpu2 0 2>,
+-							 <&cpu3 0 2>,
+-							 <&cpu4 0 2>,
+-							 <&cpu5 0 2>,
+-							 <&cpu6 0 2>,
+-							 <&cpu7 0 2>;
+-				};
+-				/*
+-				 * When reaching cpu0_alert1, reduce CPU
+-				 * further, down to 600 MHz (12 steps for big,
+-				 * 7 steps for LITTLE).
+-				 */
+-				map1 {
+-					trip = <&cpu0_alert1>;
+-					cooling-device = <&cpu0 3 7>,
+-							 <&cpu1 3 7>,
+-							 <&cpu2 3 7>,
+-							 <&cpu3 3 7>,
+-							 <&cpu4 3 12>,
+-							 <&cpu5 3 12>,
+-							 <&cpu6 3 12>,
+-							 <&cpu7 3 12>;
+-				};
+-			};
++			#define CPU_THERMAL_ZONE_NUM 0
++			#include "exynos5422-odroidhc1-trip-points.dtsi"
++			#undef CPU_THERMAL_ZONE_NUM
+ 		};
+ 		cpu1_thermal: cpu1-thermal {
+ 			thermal-sensors = <&tmu_cpu1 0>;
+-			trips {
+-				cpu1_alert0: cpu-alert-0 {
+-					temperature = <70000>;
+-					hysteresis = <10000>;
+-					type = "active";
+-				};
+-				cpu1_alert1: cpu-alert-1 {
+-					temperature = <85000>;
+-					hysteresis = <10000>;
+-					type = "active";
+-				};
+-				cpu1_crit0: cpu-crit-0 {
+-					temperature = <120000>;
+-					hysteresis = <0>;
+-					type = "critical";
+-				};
+-			};
+-			cooling-maps {
+-				map0 {
+-					trip = <&cpu1_alert0>;
+-					cooling-device = <&cpu0 0 2>,
+-							 <&cpu1 0 2>,
+-							 <&cpu2 0 2>,
+-							 <&cpu3 0 2>,
+-							 <&cpu4 0 2>,
+-							 <&cpu5 0 2>,
+-							 <&cpu6 0 2>,
+-							 <&cpu7 0 2>;
+-				};
+-				map1 {
+-					trip = <&cpu1_alert1>;
+-					cooling-device = <&cpu0 3 7>,
+-							 <&cpu1 3 7>,
+-							 <&cpu2 3 7>,
+-							 <&cpu3 3 7>,
+-							 <&cpu4 3 12>,
+-							 <&cpu5 3 12>,
+-							 <&cpu6 3 12>,
+-							 <&cpu7 3 12>;
+-				};
+-			};
++			#define CPU_THERMAL_ZONE_NUM 1
++			#include "exynos5422-odroidhc1-trip-points.dtsi"
++			#undef CPU_THERMAL_ZONE_NUM
+ 		};
+ 		cpu2_thermal: cpu2-thermal {
+ 			thermal-sensors = <&tmu_cpu2 0>;
+-			trips {
+-				cpu2_alert0: cpu-alert-0 {
+-					temperature = <70000>;
+-					hysteresis = <10000>;
+-					type = "active";
+-				};
+-				cpu2_alert1: cpu-alert-1 {
+-					temperature = <85000>;
+-					hysteresis = <10000>;
+-					type = "active";
+-				};
+-				cpu2_crit0: cpu-crit-0 {
+-					temperature = <120000>;
+-					hysteresis = <0>;
+-					type = "critical";
+-				};
+-			};
+-			cooling-maps {
+-				map0 {
+-					trip = <&cpu2_alert0>;
+-					cooling-device = <&cpu0 0 2>,
+-							 <&cpu1 0 2>,
+-							 <&cpu2 0 2>,
+-							 <&cpu3 0 2>,
+-							 <&cpu4 0 2>,
+-							 <&cpu5 0 2>,
+-							 <&cpu6 0 2>,
+-							 <&cpu7 0 2>;
+-				};
+-				map1 {
+-					trip = <&cpu2_alert1>;
+-					cooling-device = <&cpu0 3 7>,
+-							 <&cpu1 3 7>,
+-							 <&cpu2 3 7>,
+-							 <&cpu3 3 7>,
+-							 <&cpu4 3 12>,
+-							 <&cpu5 3 12>,
+-							 <&cpu6 3 12>,
+-							 <&cpu7 3 12>;
+-				};
+-			};
++			#define CPU_THERMAL_ZONE_NUM 2
++			#include "exynos5422-odroidhc1-trip-points.dtsi"
++			#undef CPU_THERMAL_ZONE_NUM
+ 		};
+ 		cpu3_thermal: cpu3-thermal {
+ 			thermal-sensors = <&tmu_cpu3 0>;
+-			trips {
+-				cpu3_alert0: cpu-alert-0 {
+-					temperature = <70000>;
+-					hysteresis = <10000>;
+-					type = "active";
+-				};
+-				cpu3_alert1: cpu-alert-1 {
+-					temperature = <85000>;
+-					hysteresis = <10000>;
+-					type = "active";
+-				};
+-				cpu3_crit0: cpu-crit-0 {
+-					temperature = <120000>;
+-					hysteresis = <0>;
+-					type = "critical";
+-				};
+-			};
+-			cooling-maps {
+-				map0 {
+-					trip = <&cpu3_alert0>;
+-					cooling-device = <&cpu0 0 2>,
+-							 <&cpu1 0 2>,
+-							 <&cpu2 0 2>,
+-							 <&cpu3 0 2>,
+-							 <&cpu4 0 2>,
+-							 <&cpu5 0 2>,
+-							 <&cpu6 0 2>,
+-							 <&cpu7 0 2>;
+-				};
+-				map1 {
+-					trip = <&cpu3_alert1>;
+-					cooling-device = <&cpu0 3 7>,
+-							 <&cpu1 3 7>,
+-							 <&cpu2 3 7>,
+-							 <&cpu3 3 7>,
+-							 <&cpu4 3 12>,
+-							 <&cpu5 3 12>,
+-							 <&cpu6 3 12>,
+-							 <&cpu7 3 12>;
+-				};
+-			};
++			#define CPU_THERMAL_ZONE_NUM 3
++			#include "exynos5422-odroidhc1-trip-points.dtsi"
++			#undef CPU_THERMAL_ZONE_NUM
+ 		};
+ 	};
+ 
+arch/arm/boot/dts/exynos5422-odroidhc1-trip-points.dtsi
+--- ../torvalds-linux/arch/arm/boot/dts/exynos5422-odroidhc1-trip-points.dtsi	1970-01-01 10:00:00.000000000 +1000
++++ arch/arm/boot/dts/exynos5422-odroidhc1-trip-points.dtsi	2019-11-12 19:47:38.423113307 +1100
+@@ -0,0 +1,84 @@
++/*
++ * Device tree sources for default OdroidXU3/Exynos5422 thermal zone definition
++ *
++ * Copyright (c) 2015 Lukasz Majewski <l.majewski@samsung.com>
++ *						Anand Moon <linux.amoon@gmail.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ */
++
++#define _TOKENPASTE(x, y) x ## y
++#define TOKENPASTE(x, y) _TOKENPASTE(x, y)
++#define UNIQIFY(label) TOKENPASTE(label, CPU_THERMAL_ZONE_NUM)
++
++			trips {
++				UNIQIFY(cpu_alert0): cpu-alert-0 {
++					temperature = <80000>; /* millicelsius */
++					hysteresis = <2500>; /* millicelsius */
++					type = "passive";
++					irq-mode;
++				};
++				UNIQIFY(cpu_alert1): cpu-alert-1 {
++					temperature = <85000>; /* millicelsius */
++					hysteresis = <2500>; /* millicelsius */
++					type = "passive";
++					irq-mode;
++				};
++				UNIQIFY(cpu_alert2): cpu-alert-2 {
++					temperature = <90000>; /* millicelsius */
++					hysteresis = <2500>; /* millicelsius */
++					type = "passive";
++					irq-mode;
++				};
++				UNIQIFY(cpu_criti0): cpu-crit-0 {
++					temperature = <120000>; /* millicelsius */
++					hysteresis = <0>; /* millicelsius */
++					type = "critical";
++					irq-mode;
++				};
++			};
++			cooling-maps {
++				/*
++				 * When reaching cpu_alert0, reduce A15 cores by 4 steps.
++				 * The top frequency causes high thermals on multithreaded workloads
++				 * so better performance is gained by managing it out early.
++				 */
++				map0 {
++					trip = <&UNIQIFY(cpu_alert0)>;
++					cooling-device = <&cpu4 0 4>,
++							 <&cpu5 0 4>,
++							 <&cpu6 0 4>,
++							 <&cpu7 0 4>;
++				};
++				/*
++				* When reaching cpu_alert1, reduce A15 cores by 4 more steps
++				* to further manage the performance level while keeping
++				* thermals under control.
++				*/
++				map1 {
++					trip = <&UNIQIFY(cpu_alert1)>;
++					cooling-device = <&cpu4 5 8>,
++							 <&cpu5 5 8>,
++							 <&cpu6 5 8>,
++							 <&cpu7 5 8>;
++				};
++				/*
++				 * When reaching cpu_alert2, reduce all CPUs to ensure thermal
++				 * safety. A7 cores don't produce much thermal load so they are
++				 * reduced less to optimise performance.
++				 */
++				map2 {
++					trip = <&UNIQIFY(cpu_alert2)>;
++					cooling-device = <&cpu0 0 4>,
++							 <&cpu1 0 4>,
++							 <&cpu2 0 4>,
++							 <&cpu3 0 4>,
++							 <&cpu4 9 12>,
++							 <&cpu5 9 12>,
++							 <&cpu6 9 12>,
++							 <&cpu7 9 12>;
++				};
++			};
+arch/arm/boot/dts/exynos5422-odroidxu3-common.dtsi
+--- ../torvalds-linux/arch/arm/boot/dts/exynos5422-odroidxu3-common.dtsi	2019-11-04 09:07:26.000000000 +1100
++++ arch/arm/boot/dts/exynos5422-odroidxu3-common.dtsi	2019-11-12 19:47:38.423113307 +1100
+@@ -45,317 +45,33 @@
+ 		compatible = "pwm-fan";
+ 		pwms = <&pwm 0 20972 0>;
+ 		#cooling-cells = <2>;
+-		cooling-levels = <0 130 170 230>;
++		cooling-levels = <0 120 180 240>;
+ 	};
+ 
+ 	thermal-zones {
+ 		cpu0_thermal: cpu0-thermal {
+ 			thermal-sensors = <&tmu_cpu0 0>;
+-			polling-delay-passive = <250>;
+-			polling-delay = <0>;
+-			trips {
+-				cpu0_alert0: cpu-alert-0 {
+-					temperature = <50000>; /* millicelsius */
+-					hysteresis = <5000>; /* millicelsius */
+-					type = "active";
+-				};
+-				cpu0_alert1: cpu-alert-1 {
+-					temperature = <60000>; /* millicelsius */
+-					hysteresis = <5000>; /* millicelsius */
+-					type = "active";
+-				};
+-				cpu0_alert2: cpu-alert-2 {
+-					temperature = <70000>; /* millicelsius */
+-					hysteresis = <5000>; /* millicelsius */
+-					type = "active";
+-				};
+-				cpu0_crit0: cpu-crit-0 {
+-					temperature = <120000>; /* millicelsius */
+-					hysteresis = <0>; /* millicelsius */
+-					type = "critical";
+-				};
+-				/*
+-				 * Exynos542x supports only 4 trip-points
+-				 * so for these polling mode is required.
+-				 * Start polling at temperature level of last
+-				 * interrupt-driven trip: cpu0_alert2
+-				 */
+-				cpu0_alert3: cpu-alert-3 {
+-					temperature = <70000>; /* millicelsius */
+-					hysteresis = <10000>; /* millicelsius */
+-					type = "passive";
+-				};
+-				cpu0_alert4: cpu-alert-4 {
+-					temperature = <85000>; /* millicelsius */
+-					hysteresis = <10000>; /* millicelsius */
+-					type = "passive";
+-				};
+-			};
+-			cooling-maps {
+-				map0 {
+-					trip = <&cpu0_alert0>;
+-					cooling-device = <&fan0 0 1>;
+-				};
+-				map1 {
+-					trip = <&cpu0_alert1>;
+-					cooling-device = <&fan0 1 2>;
+-				};
+-				map2 {
+-					trip = <&cpu0_alert2>;
+-					cooling-device = <&fan0 2 3>;
+-				};
+-				/*
+-				 * When reaching cpu0_alert3, reduce CPU
+-				 * by 2 steps. On Exynos5422/5800 that would
+-				 * be: 1600 MHz and 1100 MHz.
+-				 */
+-				map3 {
+-					trip = <&cpu0_alert3>;
+-					cooling-device = <&cpu0 0 2>,
+-							 <&cpu1 0 2>,
+-							 <&cpu2 0 2>,
+-							 <&cpu3 0 2>,
+-							 <&cpu4 0 2>,
+-							 <&cpu5 0 2>,
+-							 <&cpu6 0 2>,
+-							 <&cpu7 0 2>;
+-				};
+-				/*
+-				 * When reaching cpu0_alert4, reduce CPU
+-				 * further, down to 600 MHz (12 steps for big,
+-				 * 7 steps for LITTLE).
+-				 */
+-				map4 {
+-					trip = <&cpu0_alert4>;
+-					cooling-device = <&cpu0 3 7>,
+-							 <&cpu1 3 7>,
+-							 <&cpu2 3 7>,
+-							 <&cpu3 3 7>,
+-							 <&cpu4 3 12>,
+-							 <&cpu5 3 12>,
+-							 <&cpu6 3 12>,
+-							 <&cpu7 3 12>;
+-				};
+-			};
++			#define CPU_THERMAL_ZONE_NUM 0
++			#include "exynos5422-odroidxu3-trip-points.dtsi"
++			#undef CPU_THERMAL_ZONE_NUM
+ 		};
+ 		cpu1_thermal: cpu1-thermal {
+ 			thermal-sensors = <&tmu_cpu1 0>;
+-			polling-delay-passive = <250>;
+-			polling-delay = <0>;
+-			trips {
+-				cpu1_alert0: cpu-alert-0 {
+-					temperature = <50000>;
+-					hysteresis = <5000>;
+-					type = "active";
+-				};
+-				cpu1_alert1: cpu-alert-1 {
+-					temperature = <60000>;
+-					hysteresis = <5000>;
+-					type = "active";
+-				};
+-				cpu1_alert2: cpu-alert-2 {
+-					temperature = <70000>;
+-					hysteresis = <5000>;
+-					type = "active";
+-				};
+-				cpu1_crit0: cpu-crit-0 {
+-					temperature = <120000>;
+-					hysteresis = <0>;
+-					type = "critical";
+-				};
+-				cpu1_alert3: cpu-alert-3 {
+-					temperature = <70000>;
+-					hysteresis = <10000>;
+-					type = "passive";
+-				};
+-				cpu1_alert4: cpu-alert-4 {
+-					temperature = <85000>;
+-					hysteresis = <10000>;
+-					type = "passive";
+-				};
+-			};
+-			cooling-maps {
+-				map0 {
+-					trip = <&cpu1_alert0>;
+-					cooling-device = <&fan0 0 1>;
+-				};
+-				map1 {
+-					trip = <&cpu1_alert1>;
+-					cooling-device = <&fan0 1 2>;
+-				};
+-				map2 {
+-					trip = <&cpu1_alert2>;
+-					cooling-device = <&fan0 2 3>;
+-				};
+-				map3 {
+-					trip = <&cpu1_alert3>;
+-					cooling-device = <&cpu0 0 2>,
+-							 <&cpu1 0 2>,
+-							 <&cpu2 0 2>,
+-							 <&cpu3 0 2>,
+-							 <&cpu4 0 2>,
+-							 <&cpu5 0 2>,
+-							 <&cpu6 0 2>,
+-							 <&cpu7 0 2>;
+-				};
+-				map4 {
+-					trip = <&cpu1_alert4>;
+-					cooling-device = <&cpu0 3 7>,
+-							 <&cpu1 3 7>,
+-							 <&cpu2 3 7>,
+-							 <&cpu3 3 7>,
+-							 <&cpu4 3 12>,
+-							 <&cpu5 3 12>,
+-							 <&cpu6 3 12>,
+-							 <&cpu7 3 12>;
+-				};
+-			};
++			#define CPU_THERMAL_ZONE_NUM 1
++			#include "exynos5422-odroidxu3-trip-points.dtsi"
++			#undef CPU_THERMAL_ZONE_NUM
+ 		};
+ 		cpu2_thermal: cpu2-thermal {
+ 			thermal-sensors = <&tmu_cpu2 0>;
+-			polling-delay-passive = <250>;
+-			polling-delay = <0>;
+-			trips {
+-				cpu2_alert0: cpu-alert-0 {
+-					temperature = <50000>;
+-					hysteresis = <5000>;
+-					type = "active";
+-				};
+-				cpu2_alert1: cpu-alert-1 {
+-					temperature = <60000>;
+-					hysteresis = <5000>;
+-					type = "active";
+-				};
+-				cpu2_alert2: cpu-alert-2 {
+-					temperature = <70000>;
+-					hysteresis = <5000>;
+-					type = "active";
+-				};
+-				cpu2_crit0: cpu-crit-0 {
+-					temperature = <120000>;
+-					hysteresis = <0>;
+-					type = "critical";
+-				};
+-				cpu2_alert3: cpu-alert-3 {
+-					temperature = <70000>;
+-					hysteresis = <10000>;
+-					type = "passive";
+-				};
+-				cpu2_alert4: cpu-alert-4 {
+-					temperature = <85000>;
+-					hysteresis = <10000>;
+-					type = "passive";
+-				};
+-			};
+-			cooling-maps {
+-				map0 {
+-					trip = <&cpu2_alert0>;
+-					cooling-device = <&fan0 0 1>;
+-				};
+-				map1 {
+-					trip = <&cpu2_alert1>;
+-					cooling-device = <&fan0 1 2>;
+-				};
+-				map2 {
+-					trip = <&cpu2_alert2>;
+-					cooling-device = <&fan0 2 3>;
+-				};
+-				map3 {
+-					trip = <&cpu2_alert3>;
+-					cooling-device = <&cpu0 0 2>,
+-							 <&cpu1 0 2>,
+-							 <&cpu2 0 2>,
+-							 <&cpu3 0 2>,
+-							 <&cpu4 0 2>,
+-							 <&cpu5 0 2>,
+-							 <&cpu6 0 2>,
+-							 <&cpu7 0 2>;
+-				};
+-				map4 {
+-					trip = <&cpu2_alert4>;
+-					cooling-device = <&cpu0 3 7>,
+-							 <&cpu1 3 7>,
+-							 <&cpu2 3 7>,
+-							 <&cpu3 3 7>,
+-							 <&cpu4 3 12>,
+-							 <&cpu5 3 12>,
+-							 <&cpu6 3 12>,
+-							 <&cpu7 3 12>;
+-				};
+-			};
++			#define CPU_THERMAL_ZONE_NUM 2
++			#include "exynos5422-odroidxu3-trip-points.dtsi"
++			#undef CPU_THERMAL_ZONE_NUM
+ 		};
+ 		cpu3_thermal: cpu3-thermal {
+ 			thermal-sensors = <&tmu_cpu3 0>;
+-			polling-delay-passive = <250>;
+-			polling-delay = <0>;
+-			trips {
+-				cpu3_alert0: cpu-alert-0 {
+-					temperature = <50000>;
+-					hysteresis = <5000>;
+-					type = "active";
+-				};
+-				cpu3_alert1: cpu-alert-1 {
+-					temperature = <60000>;
+-					hysteresis = <5000>;
+-					type = "active";
+-				};
+-				cpu3_alert2: cpu-alert-2 {
+-					temperature = <70000>;
+-					hysteresis = <5000>;
+-					type = "active";
+-				};
+-				cpu3_crit0: cpu-crit-0 {
+-					temperature = <120000>;
+-					hysteresis = <0>;
+-					type = "critical";
+-				};
+-				cpu3_alert3: cpu-alert-3 {
+-					temperature = <70000>;
+-					hysteresis = <10000>;
+-					type = "passive";
+-				};
+-				cpu3_alert4: cpu-alert-4 {
+-					temperature = <85000>;
+-					hysteresis = <10000>;
+-					type = "passive";
+-				};
+-			};
+-			cooling-maps {
+-				map0 {
+-					trip = <&cpu3_alert0>;
+-					cooling-device = <&fan0 0 1>;
+-				};
+-				map1 {
+-					trip = <&cpu3_alert1>;
+-					cooling-device = <&fan0 1 2>;
+-				};
+-				map2 {
+-					trip = <&cpu3_alert2>;
+-					cooling-device = <&fan0 2 3>;
+-				};
+-				map3 {
+-					trip = <&cpu3_alert3>;
+-					cooling-device = <&cpu0 0 2>,
+-							 <&cpu1 0 2>,
+-							 <&cpu2 0 2>,
+-							 <&cpu3 0 2>,
+-							 <&cpu4 0 2>,
+-							 <&cpu5 0 2>,
+-							 <&cpu6 0 2>,
+-							 <&cpu7 0 2>;
+-				};
+-				map4 {
+-					trip = <&cpu3_alert4>;
+-					cooling-device = <&cpu0 3 7>,
+-							 <&cpu1 3 7>,
+-							 <&cpu2 3 7>,
+-							 <&cpu3 3 7>,
+-							 <&cpu4 3 12>,
+-							 <&cpu5 3 12>,
+-							 <&cpu6 3 12>,
+-							 <&cpu7 3 12>;
+-				};
+-			};
++			#define CPU_THERMAL_ZONE_NUM 3
++			#include "exynos5422-odroidxu3-trip-points.dtsi"
++			#undef CPU_THERMAL_ZONE_NUM
+ 		};
+ 	};
+ };
+arch/arm/boot/dts/exynos5422-odroidxu3-lite.dts
+--- ../torvalds-linux/arch/arm/boot/dts/exynos5422-odroidxu3-lite.dts	2019-11-04 09:07:26.000000000 +1100
++++ arch/arm/boot/dts/exynos5422-odroidxu3-lite.dts	2019-11-12 19:47:38.423113307 +1100
+@@ -18,6 +18,15 @@
+ 	compatible = "hardkernel,odroid-xu3-lite", "samsung,exynos5800", "samsung,exynos5";
+ };
+ 
++&cluster_a15_opp_table {
++	/delete-node/opp-2000000000;
++	/delete-node/opp-1900000000;
++};
++
++&cluster_a7_opp_table {
++	/delete-node/opp-1400000000;
++};
++
+ &arm_a7_pmu {
+ 	status = "disabled";
+ };
+@@ -26,6 +35,10 @@
+ 	status = "disabled";
+ };
+ 
++&chipid {
++	samsung,asv-bin = <2>;
++};
++
+ &pwm {
+ 	/*
+ 	 * PWM 0 -- fan
+arch/arm/boot/dts/exynos5422-odroidxu3-trip-points.dtsi
+--- ../torvalds-linux/arch/arm/boot/dts/exynos5422-odroidxu3-trip-points.dtsi	1970-01-01 10:00:00.000000000 +1000
++++ arch/arm/boot/dts/exynos5422-odroidxu3-trip-points.dtsi	2019-11-12 19:47:38.423113307 +1100
+@@ -0,0 +1,117 @@
++/*
++ * Device tree sources for default OdroidXU3/Exynos5422 thermal zone definition
++ *
++ * Copyright (c) 2015 Lukasz Majewski <l.majewski@samsung.com>
++ *						Anand Moon <linux.amoon@gmail.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ */
++
++#define _TOKENPASTE(x, y) x ## y
++#define TOKENPASTE(x, y) _TOKENPASTE(x, y)
++#define UNIQIFY(label) TOKENPASTE(label, CPU_THERMAL_ZONE_NUM)
++
++			polling-delay-passive = <250>;
++			polling-delay = <1000>;
++			trips {
++				UNIQIFY(cpu_alert0): cpu-alert-0 {
++					temperature = <60000>; /* millicelsius */
++					hysteresis = <5000>; /* millicelsius */
++					type = "passive";
++					irq-mode;
++				};
++				UNIQIFY(cpu_alert1): cpu-alert-1 {
++					temperature = <70000>; /* millicelsius */
++					hysteresis = <5000>; /* millicelsius */
++					type = "passive";
++					irq-mode;
++				};
++				UNIQIFY(cpu_alert2): cpu-alert-2 {
++					temperature = <80000>; /* millicelsius */
++					hysteresis = <5000>; /* millicelsius */
++					type = "passive";
++					irq-mode;
++				};
++				UNIQIFY(cpu_criti0): cpu-crit-0 {
++					temperature = <120000>; /* millicelsius */
++					hysteresis = <0>; /* millicelsius */
++					type = "critical";
++					irq-mode;
++				};
++				/*
++				 * Exynos542x supports only 4 trip-points
++				 * so for these polling mode is required.
++				 */
++				UNIQIFY(cpu_alert3): cpu-alert-3 {
++					temperature = <85000>; /* millicelsius */
++					hysteresis = <2500>; /* millicelsius */
++					type = "passive";
++				};
++				UNIQIFY(cpu_alert4): cpu-alert-4 {
++					temperature = <90000>; /* millicelsius */
++					hysteresis = <2500>; /* millicelsius */
++					type = "passive";
++				};
++				UNIQIFY(cpu_alert5): cpu-alert-5 {
++					temperature = <95000>; /* millicelsius */
++					hysteresis = <2500>; /* millicelsius */
++					type = "passive";
++				};
++			};
++			cooling-maps {
++				map0 {
++					trip = <&UNIQIFY(cpu_alert0)>;
++					cooling-device = <&fan0 0 1>;
++				};
++				map1 {
++					trip = <&UNIQIFY(cpu_alert1)>;
++					cooling-device = <&fan0 1 2>;
++				};
++				map2 {
++					trip = <&UNIQIFY(cpu_alert2)>;
++					cooling-device = <&fan0 2 3>;
++				};
++				/*
++				 * When reaching cpu_alert3, reduce A15 cores by 4 steps (e.g. 2.0GHz -> 1.6GHz).
++				 * The top frequency causes high thermals on multithreaded workloads
++				 * so better performance is gained by managing it out early.
++				 */
++				map3 {
++					trip = <&UNIQIFY(cpu_alert3)>;
++					cooling-device = <&cpu4 0 4>,
++							 <&cpu5 0 4>,
++							 <&cpu6 0 4>,
++							 <&cpu7 0 4>;
++				};
++				/*
++				* When reaching cpu_alert4, reduce A15 cores by 4 more steps (e.g. 1.6GHz -> 1.2GHz)
++				* to further manage the performance level while keeping
++				* thermals under control.
++				*/
++				map4 {
++					trip = <&UNIQIFY(cpu_alert4)>;
++					cooling-device = <&cpu4 5 8>,
++							 <&cpu5 5 8>,
++							 <&cpu6 5 8>,
++							 <&cpu7 5 8>;
++				};
++				/*
++				 * When reaching cpu_alert5, reduce all CPUs to ensure thermal
++				 * safety. A7 cores don't produce much thermal load so they are
++				 * reduced less to optimise performance.
++				 */
++				map5 {
++					trip = <&UNIQIFY(cpu_alert5)>;
++					cooling-device = <&cpu0 0 4>,
++							 <&cpu1 0 4>,
++							 <&cpu2 0 4>,
++							 <&cpu3 0 4>,
++							 <&cpu4 9 12>,
++							 <&cpu5 9 12>,
++							 <&cpu6 9 12>,
++							 <&cpu7 9 12>;
++				};
++			};
+arch/arm/boot/dts/exynos54xx.dtsi
+--- ../torvalds-linux/arch/arm/boot/dts/exynos54xx.dtsi	2019-11-04 09:07:26.000000000 +1100
++++ arch/arm/boot/dts/exynos54xx.dtsi	2019-11-12 19:47:38.423113307 +1100
+@@ -45,6 +45,15 @@
+ 		status = "disabled";
+ 	};
+ 
++	timer: timer {
++		compatible = "arm,armv7-timer";
++		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
++			     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
++			     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
++			     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>;
++		clock-frequency = <24000000>;
++	};
++
+ 	soc: soc {
+ 		sysram@2020000 {
+ 			compatible = "mmio-sram";
+arch/arm/boot/dts/exynos5800.dtsi
+--- ../torvalds-linux/arch/arm/boot/dts/exynos5800.dtsi	2019-11-04 09:07:26.000000000 +1100
++++ arch/arm/boot/dts/exynos5800.dtsi	2019-11-12 19:47:38.423113307 +1100
+@@ -17,39 +17,52 @@
+ };
+ 
+ &clock {
+-	compatible = "samsung,exynos5800-clock";
++	compatible = "samsung,exynos5800-clock", "syscon";
+ };
+ 
+ &cluster_a15_opp_table {
+-	opp-1700000000 {
++	opp-2000000000 {
++		opp-hz = /bits/ 64 <2000000000>;
++		opp-microvolt = <1312500>;
++		clock-latency-ns = <140000>;
++	};
++	opp-1900000000 {
++		opp-hz = /bits/64 <1900000000>;
+ 		opp-microvolt = <1250000>;
++		clock-latency-ns = <140000>;
++	};
++	opp-1800000000 {
++		opp-microvolt = <1200000>;
++	};
++	opp-1700000000 {
++		opp-microvolt = <1162500>;
+ 	};
+ 	opp-1600000000 {
+-		opp-microvolt = <1250000>;
++		opp-microvolt = <1125000>;
+ 	};
+ 	opp-1500000000 {
+-		opp-microvolt = <1100000>;
++		opp-microvolt = <1087500>;
+ 	};
+ 	opp-1400000000 {
+-		opp-microvolt = <1100000>;
++		opp-microvolt = <1062500>;
+ 	};
+ 	opp-1300000000 {
+-		opp-microvolt = <1100000>;
++		opp-microvolt = <1050000>;
+ 	};
+ 	opp-1200000000 {
+-		opp-microvolt = <1000000>;
++		opp-microvolt = <1050000>;
+ 	};
+ 	opp-1100000000 {
+ 		opp-microvolt = <1000000>;
+ 	};
+ 	opp-1000000000 {
+-		opp-microvolt = <1000000>;
++		opp-microvolt = <975000>;
+ 	};
+ 	opp-900000000 {
+-		opp-microvolt = <1000000>;
++		opp-microvolt = <950000>;
+ 	};
+ 	opp-800000000 {
+-		opp-microvolt = <900000>;
++		opp-microvolt = <925000>;
+ 	};
+ 	opp-700000000 {
+ 		opp-microvolt = <900000>;
+@@ -82,38 +95,43 @@
+ };
+ 
+ &cluster_a7_opp_table {
++	opp-1400000000 {
++		opp-hz = /bits/ 64 <1400000000>;
++		opp-microvolt = <1275000>;
++		clock-latency-ns = <140000>;
++	};
+ 	opp-1300000000 {
+-		opp-microvolt = <1250000>;
++		opp-microvolt = <1225000>;
+ 	};
+ 	opp-1200000000 {
+-		opp-microvolt = <1250000>;
++		opp-microvolt = <1175000>;
+ 	};
+ 	opp-1100000000 {
+-		opp-microvolt = <1250000>;
++		opp-microvolt = <1137500>;
+ 	};
+ 	opp-1000000000 {
+ 		opp-microvolt = <1100000>;
+ 	};
+ 	opp-900000000 {
+-		opp-microvolt = <1100000>;
++		opp-microvolt = <1062500>;
+ 	};
+ 	opp-800000000 {
+-		opp-microvolt = <1100000>;
++		opp-microvolt = <1025000>;
+ 	};
+ 	opp-700000000 {
+-		opp-microvolt = <1000000>;
++		opp-microvolt = <987500>;
+ 	};
+ 	opp-600000000 {
+-		opp-microvolt = <1000000>;
++		opp-microvolt = <950000>;
+ 	};
+ 	opp-500000000 {
+ 		opp-hz = /bits/ 64 <500000000>;
+-		opp-microvolt = <1000000>;
++		opp-microvolt = <900000>;
+ 		clock-latency-ns = <140000>;
+ 	};
+ 	opp-400000000 {
+ 		opp-hz = /bits/ 64 <400000000>;
+-		opp-microvolt = <1000000>;
++		opp-microvolt = <900000>;
+ 		clock-latency-ns = <140000>;
+ 	};
+ 	opp-300000000 {
+arch/arm/boot/dts/exynos5800-peach-pi.dts
+--- ../torvalds-linux/arch/arm/boot/dts/exynos5800-peach-pi.dts	2019-11-04 09:07:26.000000000 +1100
++++ arch/arm/boot/dts/exynos5800-peach-pi.dts	2019-11-12 19:47:38.423113307 +1100
+@@ -1034,6 +1034,10 @@
+ 	status = "okay";
+ };
+ 
++&timer {
++	arm,cpu-registers-not-fw-configured;
++};
++
+ &tmu_cpu0 {
+ 	vtmu-supply = <&ldo10_reg>;
+ };
+arch/arm/boot/dts/exynos5.dtsi
+--- ../torvalds-linux/arch/arm/boot/dts/exynos5.dtsi	2019-11-04 09:07:26.000000000 +1100
++++ arch/arm/boot/dts/exynos5.dtsi	2019-11-12 19:47:38.419113298 +1100
+@@ -35,8 +35,8 @@
+ 		#size-cells = <1>;
+ 		ranges;
+ 
+-		chipid@10000000 {
+-			compatible = "samsung,exynos4210-chipid";
++		chipid: chipid@10000000 {
++			compatible = "samsung,exynos4210-chipid", "syscon";
+ 			reg = <0x10000000 0x100>;
+ 		};
+ 

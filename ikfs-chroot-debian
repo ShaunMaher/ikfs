@@ -8,7 +8,9 @@ kernel_name_suffix="${kernel_name_suffix:-generic}"
 source "${script_dir}/ikfs-common"
 
 # If crosscompiling aarch64 (arm64): gcc-aarch64-linux-gnu
-if [ ! "${build_cpu}" = "${os_cpu}" ]; then
+if [ "${build_cpu}" = "armv7l" ] && [ "${os_cpu}" = "arm" ]; then
+  echo "No need to Cross Compile for '${os_cpu}' on '${build_cpu}'."
+elif [ ! "${build_cpu}" = "${os_cpu}" ]; then
   echo "Cross Compiling for '${os_cpu}' on '${build_cpu}'.  Will install additional package 'gcc-${os_cpu}-linux-gnu'."
   build_depends="${build_depends} gcc-${os_cpu}-linux-gnu"
   #TODO: build_depends="${build_depends} gcc-8-${os_cpu}-linux-gnu"
@@ -136,7 +138,9 @@ function configure_kernel () {
   echo "TODO: make oldconfig? How do we import the current systems settings?"
 
   # For cross compile using local cpu arch:
-  if [ ! "${build_cpu}" = "${os_cpu}" ]; then
+  if [ "${build_cpu}" = "armv7l" ] && [ "${os_cpu}" = "arm" ]; then
+    echo "No need to Cross Compile for '${os_cpu}' on '${build_cpu}'."
+  elif [ ! "${build_cpu}" = "${os_cpu}" ]; then
     export CROSS_COMPILE="${os_cpu}-linux-gnu-"
   fi
   export $(dpkg-architecture -a${os_cpu_alt_name})

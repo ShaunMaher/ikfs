@@ -103,6 +103,7 @@ function configure_kernel () {
     sed -i "s/[[:space:]]generic[[:space:]]/ ${kernel_name_suffix} /g" "debian.master/rules.d/${os_cpu_alt_name}.mk"
 
     #TODO: debian.master/config/annotations - Then remove the patch
+    sed -i "s/-generic':/-${kernel_name_suffix}':/g" "debian.master/config/annotations"
     #  patches/linux/flavour-all/arch-aarch64/version-disco/0001_LSM_annotations_for_custom_flavour.patch
 
     readarray -t files < <(find "debian.master/abi/${prev_abi_version}/${os_cpu_alt_name}/" -mindepth 1 -maxdepth 1 -type f | grep 'generic')
@@ -159,7 +160,9 @@ function configure_kernel () {
   dpkg --configure ca-certificates-java
 
   # For cross compile using local cpu arch:
-  if [ ! "${build_cpu}" = "${os_cpu}" ]; then
+  if [ "${build_cpu}" = "armv7l" ] && [ "${os_cpu}" = "arm" ]; then
+    echo "No need to Cross Compile for '${os_cpu}' on '${build_cpu}'."
+  elif [ ! "${build_cpu}" = "${os_cpu}" ]; then
     export CROSS_COMPILE="${os_cpu}-linux-gnu-"
   fi
   export $(dpkg-architecture -a${os_cpu_alt_name})

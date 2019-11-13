@@ -1,0 +1,6164 @@
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/clk/samsung/clk-exynos5420.c ./drivers/clk/samsung/clk-exynos5420.c
+--- ../ubuntu-eoan.orig/drivers/clk/samsung/clk-exynos5420.c	2019-10-30 11:17:16.000000000 +1100
++++ ./drivers/clk/samsung/clk-exynos5420.c	2019-11-13 18:20:18.720214040 +1100
+@@ -165,12 +165,20 @@
+ 	GATE_BUS_CPU,
+ 	GATE_SCLK_CPU,
+ 	CLKOUT_CMU_CPU,
++	APLL_CON0,
++	KPLL_CON0,
++	CPLL_CON0,
++	DPLL_CON0,
+ 	EPLL_CON0,
+ 	EPLL_CON1,
+ 	EPLL_CON2,
+ 	RPLL_CON0,
+ 	RPLL_CON1,
+ 	RPLL_CON2,
++	IPLL_CON0,
++	SPLL_CON0,
++	VPLL_CON0,
++	MPLL_CON0,
+ 	SRC_TOP0,
+ 	SRC_TOP1,
+ 	SRC_TOP2,
+@@ -605,7 +613,8 @@
+ 	MUX(0, "mout_aclk66", mout_group1_p, SRC_TOP1, 8, 2),
+ 	MUX(0, "mout_aclk166", mout_group1_p, SRC_TOP1, 24, 2),
+ 
+-	MUX(0, "mout_aclk_g3d", mout_group5_p, SRC_TOP2, 16, 1),
++	MUX_F(0, "mout_aclk_g3d", mout_group5_p, SRC_TOP2, 16, 1,
++	      CLK_SET_RATE_PARENT, 0),
+ 
+ 	MUX(0, "mout_user_aclk400_isp", mout_user_aclk400_isp_p,
+ 			SRC_TOP3, 0, 1),
+@@ -647,8 +656,8 @@
+ 			SRC_TOP5, 8, 1),
+ 	MUX(0, "mout_user_aclk266_g2d", mout_user_aclk266_g2d_p,
+ 			SRC_TOP5, 12, 1),
+-	MUX(CLK_MOUT_G3D, "mout_user_aclk_g3d", mout_user_aclk_g3d_p,
+-			SRC_TOP5, 16, 1),
++	MUX_F(CLK_MOUT_G3D, "mout_user_aclk_g3d", mout_user_aclk_g3d_p,
++			SRC_TOP5, 16, 1, CLK_SET_RATE_PARENT, 0),
+ 	MUX(0, "mout_user_aclk300_jpeg", mout_user_aclk300_jpeg_p,
+ 			SRC_TOP5, 20, 1),
+ 	MUX(CLK_MOUT_USER_ACLK300_DISP1, "mout_user_aclk300_disp1",
+@@ -657,7 +666,8 @@
+ 			mout_user_aclk300_gscl_p, SRC_TOP5, 28, 1),
+ 
+ 	MUX(0, "mout_sclk_mpll", mout_mpll_p, SRC_TOP6, 0, 1),
+-	MUX(CLK_MOUT_VPLL, "mout_sclk_vpll", mout_vpll_p, SRC_TOP6, 4, 1),
++	MUX_F(CLK_MOUT_VPLL, "mout_sclk_vpll", mout_vpll_p, SRC_TOP6, 4, 1,
++	      CLK_SET_RATE_PARENT, 0),
+ 	MUX(CLK_MOUT_SCLK_SPLL, "mout_sclk_spll", mout_spll_p, SRC_TOP6, 8, 1),
+ 	MUX(0, "mout_sclk_ipll", mout_ipll_p, SRC_TOP6, 12, 1),
+ 	MUX(0, "mout_sclk_rpll", mout_rpll_p, SRC_TOP6, 16, 1),
+@@ -701,7 +711,8 @@
+ 			SRC_TOP12, 8, 1),
+ 	MUX(0, "mout_sw_aclk266_g2d", mout_sw_aclk266_g2d_p,
+ 			SRC_TOP12, 12, 1),
+-	MUX(0, "mout_sw_aclk_g3d", mout_sw_aclk_g3d_p, SRC_TOP12, 16, 1),
++	MUX_F(0, "mout_sw_aclk_g3d", mout_sw_aclk_g3d_p, SRC_TOP12, 16, 1,
++	      CLK_SET_RATE_PARENT, 0),
+ 	MUX(0, "mout_sw_aclk300_jpeg", mout_sw_aclk300_jpeg_p,
+ 			SRC_TOP12, 20, 1),
+ 	MUX(CLK_MOUT_SW_ACLK300, "mout_sw_aclk300_disp1",
+@@ -798,8 +809,8 @@
+ 			DIV_TOP2, 8, 3),
+ 	DIV(CLK_DOUT_ACLK266_G2D, "dout_aclk266_g2d", "mout_aclk266_g2d",
+ 			DIV_TOP2, 12, 3),
+-	DIV(CLK_DOUT_ACLK_G3D, "dout_aclk_g3d", "mout_aclk_g3d", DIV_TOP2,
+-			16, 3),
++	DIV_F(CLK_DOUT_ACLK_G3D, "dout_aclk_g3d", "mout_aclk_g3d", DIV_TOP2,
++			16, 3, CLK_SET_RATE_PARENT, 0),
+ 	DIV(CLK_DOUT_ACLK300_JPEG, "dout_aclk300_jpeg", "mout_aclk300_jpeg",
+ 			DIV_TOP2, 20, 3),
+ 	DIV(CLK_DOUT_ACLK300_DISP1, "dout_aclk300_disp1",
+@@ -1172,8 +1183,6 @@
+ 	GATE(CLK_SCLK_ISP_SENSOR2, "sclk_isp_sensor2", "dout_isp_sensor2",
+ 			GATE_TOP_SCLK_ISP, 12, CLK_SET_RATE_PARENT, 0),
+ 
+-	GATE(CLK_G3D, "g3d", "mout_user_aclk_g3d", GATE_IP_G3D, 9, 0, 0),
+-
+ 	/* CDREX */
+ 	GATE(CLK_CLKM_PHY0, "clkm_phy0", "dout_sclk_cdrex",
+ 			GATE_BUS_CDREX0, 0, 0, 0),
+@@ -1248,6 +1257,16 @@
+ 	{ DIV2_RATIO0, 0, 0x30 },	/* DIV dout_gscl_blk_300 */
+ };
+ 
++static const struct samsung_gate_clock exynos5x_g3d_gate_clks[] __initconst = {
++	GATE(CLK_G3D, "g3d", "mout_user_aclk_g3d", GATE_IP_G3D, 9,
++	     CLK_SET_RATE_PARENT, 0),
++};
++
++static struct exynos5_subcmu_reg_dump exynos5x_g3d_suspend_regs[] = {
++	{ GATE_IP_G3D, 0x3ff, 0x3ff },	/* G3D gates */
++	{ SRC_TOP5, 0, BIT(16) },	/* MUX mout_user_aclk_g3d */
++};
++
+ static const struct samsung_div_clock exynos5x_mfc_div_clks[] __initconst = {
+ 	DIV(0, "dout_mfc_blk", "mout_user_aclk333", DIV4_RATIO, 0, 2),
+ };
+@@ -1320,6 +1339,14 @@
+ 	.pd_name	= "GSC",
+ };
+ 
++static const struct exynos5_subcmu_info exynos5x_g3d_subcmu = {
++	.gate_clks	= exynos5x_g3d_gate_clks,
++	.nr_gate_clks	= ARRAY_SIZE(exynos5x_g3d_gate_clks),
++	.suspend_regs	= exynos5x_g3d_suspend_regs,
++	.nr_suspend_regs = ARRAY_SIZE(exynos5x_g3d_suspend_regs),
++	.pd_name	= "G3D",
++};
++
+ static const struct exynos5_subcmu_info exynos5x_mfc_subcmu = {
+ 	.div_clks	= exynos5x_mfc_div_clks,
+ 	.nr_div_clks	= ARRAY_SIZE(exynos5x_mfc_div_clks),
+@@ -1351,6 +1378,7 @@
+ static const struct exynos5_subcmu_info *exynos5x_subcmus[] = {
+ 	&exynos5x_disp_subcmu,
+ 	&exynos5x_gsc_subcmu,
++	&exynos5x_g3d_subcmu,
+ 	&exynos5x_mfc_subcmu,
+ 	&exynos5x_mscl_subcmu,
+ };
+@@ -1358,6 +1386,7 @@
+ static const struct exynos5_subcmu_info *exynos5800_subcmus[] = {
+ 	&exynos5x_disp_subcmu,
+ 	&exynos5x_gsc_subcmu,
++	&exynos5x_g3d_subcmu,
+ 	&exynos5x_mfc_subcmu,
+ 	&exynos5x_mscl_subcmu,
+ 	&exynos5800_mau_subcmu,
+@@ -1414,6 +1443,17 @@
+ 	PLL_36XX_RATE(24 * MHZ,  32768001U, 131, 3, 5, 4719),
+ };
+ 
++static const struct samsung_pll_rate_table exynos5420_vpll_24mhz_tbl[] = {
++	PLL_35XX_RATE(24 * MHZ, 600000000U,  200, 2, 2),
++	PLL_35XX_RATE(24 * MHZ, 543000000U,  181, 2, 2),
++	PLL_35XX_RATE(24 * MHZ, 480000000U,  160, 2, 2),
++	PLL_35XX_RATE(24 * MHZ, 420000000U,  140, 2, 2),
++	PLL_35XX_RATE(24 * MHZ, 350000000U,  175, 3, 2),
++	PLL_35XX_RATE(24 * MHZ, 266000000U,  266, 3, 3),
++	PLL_35XX_RATE(24 * MHZ, 177000000U,  118, 2, 3),
++	PLL_35XX_RATE(24 * MHZ, 100000000U,  200, 3, 4),
++};
++
+ static struct samsung_pll_clock exynos5x_plls[nr_plls] __initdata = {
+ 	[apll] = PLL(pll_2550, CLK_FOUT_APLL, "fout_apll", "fin_pll", APLL_LOCK,
+ 		APLL_CON0, NULL),
+@@ -1538,6 +1578,7 @@
+ 		exynos5x_plls[apll].rate_table = exynos5420_pll2550x_24mhz_tbl;
+ 		exynos5x_plls[epll].rate_table = exynos5420_epll_24mhz_tbl;
+ 		exynos5x_plls[kpll].rate_table = exynos5420_pll2550x_24mhz_tbl;
++		exynos5x_plls[vpll].rate_table = exynos5420_vpll_24mhz_tbl;
+ 	}
+ 
+ 	if (soc == EXYNOS5420)
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/devfreq/exynos-bus.c ./drivers/devfreq/exynos-bus.c
+--- ../ubuntu-eoan.orig/drivers/devfreq/exynos-bus.c	2019-10-30 11:17:16.000000000 +1100
++++ ./drivers/devfreq/exynos-bus.c	2019-11-13 18:20:18.720214040 +1100
+@@ -328,7 +328,7 @@
+ {
+ 	struct device *dev = bus->dev;
+ 	struct dev_pm_opp *opp;
+-	unsigned long rate;
++	unsigned long rate, opp_rate;
+ 	int ret;
+ 
+ 	/* Get the clock to provide each bus with source clock */
+@@ -352,13 +352,21 @@
+ 	}
+ 
+ 	rate = clk_get_rate(bus->clk);
+-
+-	opp = devfreq_recommended_opp(dev, &rate, 0);
++	opp_rate = rate;
++	opp = devfreq_recommended_opp(dev, &opp_rate, 0);
+ 	if (IS_ERR(opp)) {
+ 		dev_err(dev, "failed to find dev_pm_opp\n");
+ 		ret = PTR_ERR(opp);
+ 		goto err_opp;
+ 	}
++	/*
++	 * FIXME: U-boot leaves clock source at incorrect PLL, this results
++	 * in clock rate outside defined OPP rate. Work around this bug by
++	 * setting clock rate to recommended one.
++	 */
++	if (rate > opp_rate)
++		clk_set_rate(bus->clk, opp_rate);
++
+ 	bus->curr_freq = dev_pm_opp_get_freq(opp);
+ 	dev_pm_opp_put(opp);
+ 
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/devfreq/exynos-bus.c.orig ./drivers/devfreq/exynos-bus.c.orig
+--- ../ubuntu-eoan.orig/drivers/devfreq/exynos-bus.c.orig	1970-01-01 10:00:00.000000000 +1000
++++ ./drivers/devfreq/exynos-bus.c.orig	2019-10-30 11:17:16.000000000 +1100
+@@ -0,0 +1,574 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Generic Exynos Bus frequency driver with DEVFREQ Framework
++ *
++ * Copyright (c) 2016 Samsung Electronics Co., Ltd.
++ * Author : Chanwoo Choi <cw00.choi@samsung.com>
++ *
++ * This driver support Exynos Bus frequency feature by using
++ * DEVFREQ framework and is based on drivers/devfreq/exynos/exynos4_bus.c.
++ */
++
++#include <linux/clk.h>
++#include <linux/devfreq.h>
++#include <linux/devfreq-event.h>
++#include <linux/device.h>
++#include <linux/export.h>
++#include <linux/module.h>
++#include <linux/of_device.h>
++#include <linux/pm_opp.h>
++#include <linux/platform_device.h>
++#include <linux/regulator/consumer.h>
++#include <linux/slab.h>
++
++#define DEFAULT_SATURATION_RATIO	40
++#define DEFAULT_VOLTAGE_TOLERANCE	2
++
++struct exynos_bus {
++	struct device *dev;
++
++	struct devfreq *devfreq;
++	struct devfreq_event_dev **edev;
++	unsigned int edev_count;
++	struct mutex lock;
++
++	unsigned long curr_freq;
++
++	struct regulator *regulator;
++	struct clk *clk;
++	unsigned int voltage_tolerance;
++	unsigned int ratio;
++};
++
++/*
++ * Control the devfreq-event device to get the current state of bus
++ */
++#define exynos_bus_ops_edev(ops)				\
++static int exynos_bus_##ops(struct exynos_bus *bus)		\
++{								\
++	int i, ret;						\
++								\
++	for (i = 0; i < bus->edev_count; i++) {			\
++		if (!bus->edev[i])				\
++			continue;				\
++		ret = devfreq_event_##ops(bus->edev[i]);	\
++		if (ret < 0)					\
++			return ret;				\
++	}							\
++								\
++	return 0;						\
++}
++exynos_bus_ops_edev(enable_edev);
++exynos_bus_ops_edev(disable_edev);
++exynos_bus_ops_edev(set_event);
++
++static int exynos_bus_get_event(struct exynos_bus *bus,
++				struct devfreq_event_data *edata)
++{
++	struct devfreq_event_data event_data;
++	unsigned long load_count = 0, total_count = 0;
++	int i, ret = 0;
++
++	for (i = 0; i < bus->edev_count; i++) {
++		if (!bus->edev[i])
++			continue;
++
++		ret = devfreq_event_get_event(bus->edev[i], &event_data);
++		if (ret < 0)
++			return ret;
++
++		if (i == 0 || event_data.load_count > load_count) {
++			load_count = event_data.load_count;
++			total_count = event_data.total_count;
++		}
++	}
++
++	edata->load_count = load_count;
++	edata->total_count = total_count;
++
++	return ret;
++}
++
++/*
++ * Must necessary function for devfreq simple-ondemand governor
++ */
++static int exynos_bus_target(struct device *dev, unsigned long *freq, u32 flags)
++{
++	struct exynos_bus *bus = dev_get_drvdata(dev);
++	struct dev_pm_opp *new_opp;
++	unsigned long old_freq, new_freq, new_volt, tol;
++	int ret = 0;
++
++	/* Get new opp-bus instance according to new bus clock */
++	new_opp = devfreq_recommended_opp(dev, freq, flags);
++	if (IS_ERR(new_opp)) {
++		dev_err(dev, "failed to get recommended opp instance\n");
++		return PTR_ERR(new_opp);
++	}
++
++	new_freq = dev_pm_opp_get_freq(new_opp);
++	new_volt = dev_pm_opp_get_voltage(new_opp);
++	dev_pm_opp_put(new_opp);
++
++	old_freq = bus->curr_freq;
++
++	if (old_freq == new_freq)
++		return 0;
++	tol = new_volt * bus->voltage_tolerance / 100;
++
++	/* Change voltage and frequency according to new OPP level */
++	mutex_lock(&bus->lock);
++
++	if (old_freq < new_freq) {
++		ret = regulator_set_voltage_tol(bus->regulator, new_volt, tol);
++		if (ret < 0) {
++			dev_err(bus->dev, "failed to set voltage\n");
++			goto out;
++		}
++	}
++
++	ret = clk_set_rate(bus->clk, new_freq);
++	if (ret < 0) {
++		dev_err(dev, "failed to change clock of bus\n");
++		clk_set_rate(bus->clk, old_freq);
++		goto out;
++	}
++
++	if (old_freq > new_freq) {
++		ret = regulator_set_voltage_tol(bus->regulator, new_volt, tol);
++		if (ret < 0) {
++			dev_err(bus->dev, "failed to set voltage\n");
++			goto out;
++		}
++	}
++	bus->curr_freq = new_freq;
++
++	dev_dbg(dev, "Set the frequency of bus (%luHz -> %luHz, %luHz)\n",
++			old_freq, new_freq, clk_get_rate(bus->clk));
++out:
++	mutex_unlock(&bus->lock);
++
++	return ret;
++}
++
++static int exynos_bus_get_dev_status(struct device *dev,
++				     struct devfreq_dev_status *stat)
++{
++	struct exynos_bus *bus = dev_get_drvdata(dev);
++	struct devfreq_event_data edata;
++	int ret;
++
++	stat->current_frequency = bus->curr_freq;
++
++	ret = exynos_bus_get_event(bus, &edata);
++	if (ret < 0) {
++		stat->total_time = stat->busy_time = 0;
++		goto err;
++	}
++
++	stat->busy_time = (edata.load_count * 100) / bus->ratio;
++	stat->total_time = edata.total_count;
++
++	dev_dbg(dev, "Usage of devfreq-event : %lu/%lu\n", stat->busy_time,
++							stat->total_time);
++
++err:
++	ret = exynos_bus_set_event(bus);
++	if (ret < 0) {
++		dev_err(dev, "failed to set event to devfreq-event devices\n");
++		return ret;
++	}
++
++	return ret;
++}
++
++static void exynos_bus_exit(struct device *dev)
++{
++	struct exynos_bus *bus = dev_get_drvdata(dev);
++	int ret;
++
++	ret = exynos_bus_disable_edev(bus);
++	if (ret < 0)
++		dev_warn(dev, "failed to disable the devfreq-event devices\n");
++
++	if (bus->regulator)
++		regulator_disable(bus->regulator);
++
++	dev_pm_opp_of_remove_table(dev);
++	clk_disable_unprepare(bus->clk);
++}
++
++/*
++ * Must necessary function for devfreq passive governor
++ */
++static int exynos_bus_passive_target(struct device *dev, unsigned long *freq,
++					u32 flags)
++{
++	struct exynos_bus *bus = dev_get_drvdata(dev);
++	struct dev_pm_opp *new_opp;
++	unsigned long old_freq, new_freq;
++	int ret = 0;
++
++	/* Get new opp-bus instance according to new bus clock */
++	new_opp = devfreq_recommended_opp(dev, freq, flags);
++	if (IS_ERR(new_opp)) {
++		dev_err(dev, "failed to get recommended opp instance\n");
++		return PTR_ERR(new_opp);
++	}
++
++	new_freq = dev_pm_opp_get_freq(new_opp);
++	dev_pm_opp_put(new_opp);
++
++	old_freq = bus->curr_freq;
++
++	if (old_freq == new_freq)
++		return 0;
++
++	/* Change the frequency according to new OPP level */
++	mutex_lock(&bus->lock);
++
++	ret = clk_set_rate(bus->clk, new_freq);
++	if (ret < 0) {
++		dev_err(dev, "failed to set the clock of bus\n");
++		goto out;
++	}
++
++	*freq = new_freq;
++	bus->curr_freq = new_freq;
++
++	dev_dbg(dev, "Set the frequency of bus (%luHz -> %luHz, %luHz)\n",
++			old_freq, new_freq, clk_get_rate(bus->clk));
++out:
++	mutex_unlock(&bus->lock);
++
++	return ret;
++}
++
++static void exynos_bus_passive_exit(struct device *dev)
++{
++	struct exynos_bus *bus = dev_get_drvdata(dev);
++
++	dev_pm_opp_of_remove_table(dev);
++	clk_disable_unprepare(bus->clk);
++}
++
++static int exynos_bus_parent_parse_of(struct device_node *np,
++					struct exynos_bus *bus)
++{
++	struct device *dev = bus->dev;
++	int i, ret, count, size;
++
++	/* Get the regulator to provide each bus with the power */
++	bus->regulator = devm_regulator_get(dev, "vdd");
++	if (IS_ERR(bus->regulator)) {
++		dev_err(dev, "failed to get VDD regulator\n");
++		return PTR_ERR(bus->regulator);
++	}
++
++	ret = regulator_enable(bus->regulator);
++	if (ret < 0) {
++		dev_err(dev, "failed to enable VDD regulator\n");
++		return ret;
++	}
++
++	/*
++	 * Get the devfreq-event devices to get the current utilization of
++	 * buses. This raw data will be used in devfreq ondemand governor.
++	 */
++	count = devfreq_event_get_edev_count(dev);
++	if (count < 0) {
++		dev_err(dev, "failed to get the count of devfreq-event dev\n");
++		ret = count;
++		goto err_regulator;
++	}
++	bus->edev_count = count;
++
++	size = sizeof(*bus->edev) * count;
++	bus->edev = devm_kzalloc(dev, size, GFP_KERNEL);
++	if (!bus->edev) {
++		ret = -ENOMEM;
++		goto err_regulator;
++	}
++
++	for (i = 0; i < count; i++) {
++		bus->edev[i] = devfreq_event_get_edev_by_phandle(dev, i);
++		if (IS_ERR(bus->edev[i])) {
++			ret = -EPROBE_DEFER;
++			goto err_regulator;
++		}
++	}
++
++	/*
++	 * Optionally, Get the saturation ratio according to Exynos SoC
++	 * When measuring the utilization of each AXI bus with devfreq-event
++	 * devices, the measured real cycle might be much lower than the
++	 * total cycle of bus during sampling rate. In result, the devfreq
++	 * simple-ondemand governor might not decide to change the current
++	 * frequency due to too utilization (= real cycle/total cycle).
++	 * So, this property is used to adjust the utilization when calculating
++	 * the busy_time in exynos_bus_get_dev_status().
++	 */
++	if (of_property_read_u32(np, "exynos,saturation-ratio", &bus->ratio))
++		bus->ratio = DEFAULT_SATURATION_RATIO;
++
++	if (of_property_read_u32(np, "exynos,voltage-tolerance",
++					&bus->voltage_tolerance))
++		bus->voltage_tolerance = DEFAULT_VOLTAGE_TOLERANCE;
++
++	return 0;
++
++err_regulator:
++	regulator_disable(bus->regulator);
++
++	return ret;
++}
++
++static int exynos_bus_parse_of(struct device_node *np,
++			      struct exynos_bus *bus)
++{
++	struct device *dev = bus->dev;
++	struct dev_pm_opp *opp;
++	unsigned long rate;
++	int ret;
++
++	/* Get the clock to provide each bus with source clock */
++	bus->clk = devm_clk_get(dev, "bus");
++	if (IS_ERR(bus->clk)) {
++		dev_err(dev, "failed to get bus clock\n");
++		return PTR_ERR(bus->clk);
++	}
++
++	ret = clk_prepare_enable(bus->clk);
++	if (ret < 0) {
++		dev_err(dev, "failed to get enable clock\n");
++		return ret;
++	}
++
++	/* Get the freq and voltage from OPP table to scale the bus freq */
++	ret = dev_pm_opp_of_add_table(dev);
++	if (ret < 0) {
++		dev_err(dev, "failed to get OPP table\n");
++		goto err_clk;
++	}
++
++	rate = clk_get_rate(bus->clk);
++
++	opp = devfreq_recommended_opp(dev, &rate, 0);
++	if (IS_ERR(opp)) {
++		dev_err(dev, "failed to find dev_pm_opp\n");
++		ret = PTR_ERR(opp);
++		goto err_opp;
++	}
++	bus->curr_freq = dev_pm_opp_get_freq(opp);
++	dev_pm_opp_put(opp);
++
++	return 0;
++
++err_opp:
++	dev_pm_opp_of_remove_table(dev);
++err_clk:
++	clk_disable_unprepare(bus->clk);
++
++	return ret;
++}
++
++static int exynos_bus_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct device_node *np = dev->of_node, *node;
++	struct devfreq_dev_profile *profile;
++	struct devfreq_simple_ondemand_data *ondemand_data;
++	struct devfreq_passive_data *passive_data;
++	struct devfreq *parent_devfreq;
++	struct exynos_bus *bus;
++	int ret, max_state;
++	unsigned long min_freq, max_freq;
++
++	if (!np) {
++		dev_err(dev, "failed to find devicetree node\n");
++		return -EINVAL;
++	}
++
++	bus = devm_kzalloc(&pdev->dev, sizeof(*bus), GFP_KERNEL);
++	if (!bus)
++		return -ENOMEM;
++	mutex_init(&bus->lock);
++	bus->dev = &pdev->dev;
++	platform_set_drvdata(pdev, bus);
++
++	/* Parse the device-tree to get the resource information */
++	ret = exynos_bus_parse_of(np, bus);
++	if (ret < 0)
++		return ret;
++
++	profile = devm_kzalloc(dev, sizeof(*profile), GFP_KERNEL);
++	if (!profile) {
++		ret = -ENOMEM;
++		goto err;
++	}
++
++	node = of_parse_phandle(dev->of_node, "devfreq", 0);
++	if (node) {
++		of_node_put(node);
++		goto passive;
++	} else {
++		ret = exynos_bus_parent_parse_of(np, bus);
++	}
++
++	if (ret < 0)
++		goto err;
++
++	/* Initialize the struct profile and governor data for parent device */
++	profile->polling_ms = 50;
++	profile->target = exynos_bus_target;
++	profile->get_dev_status = exynos_bus_get_dev_status;
++	profile->exit = exynos_bus_exit;
++
++	ondemand_data = devm_kzalloc(dev, sizeof(*ondemand_data), GFP_KERNEL);
++	if (!ondemand_data) {
++		ret = -ENOMEM;
++		goto err;
++	}
++	ondemand_data->upthreshold = 40;
++	ondemand_data->downdifferential = 5;
++
++	/* Add devfreq device to monitor and handle the exynos bus */
++	bus->devfreq = devm_devfreq_add_device(dev, profile,
++						DEVFREQ_GOV_SIMPLE_ONDEMAND,
++						ondemand_data);
++	if (IS_ERR(bus->devfreq)) {
++		dev_err(dev, "failed to add devfreq device\n");
++		ret = PTR_ERR(bus->devfreq);
++		goto err;
++	}
++
++	/* Register opp_notifier to catch the change of OPP  */
++	ret = devm_devfreq_register_opp_notifier(dev, bus->devfreq);
++	if (ret < 0) {
++		dev_err(dev, "failed to register opp notifier\n");
++		goto err;
++	}
++
++	/*
++	 * Enable devfreq-event to get raw data which is used to determine
++	 * current bus load.
++	 */
++	ret = exynos_bus_enable_edev(bus);
++	if (ret < 0) {
++		dev_err(dev, "failed to enable devfreq-event devices\n");
++		goto err;
++	}
++
++	ret = exynos_bus_set_event(bus);
++	if (ret < 0) {
++		dev_err(dev, "failed to set event to devfreq-event devices\n");
++		goto err;
++	}
++
++	goto out;
++passive:
++	/* Initialize the struct profile and governor data for passive device */
++	profile->target = exynos_bus_passive_target;
++	profile->exit = exynos_bus_passive_exit;
++
++	/* Get the instance of parent devfreq device */
++	parent_devfreq = devfreq_get_devfreq_by_phandle(dev, 0);
++	if (IS_ERR(parent_devfreq)) {
++		ret = -EPROBE_DEFER;
++		goto err;
++	}
++
++	passive_data = devm_kzalloc(dev, sizeof(*passive_data), GFP_KERNEL);
++	if (!passive_data) {
++		ret = -ENOMEM;
++		goto err;
++	}
++	passive_data->parent = parent_devfreq;
++
++	/* Add devfreq device for exynos bus with passive governor */
++	bus->devfreq = devm_devfreq_add_device(dev, profile, DEVFREQ_GOV_PASSIVE,
++						passive_data);
++	if (IS_ERR(bus->devfreq)) {
++		dev_err(dev,
++			"failed to add devfreq dev with passive governor\n");
++		ret = PTR_ERR(bus->devfreq);
++		goto err;
++	}
++
++out:
++	max_state = bus->devfreq->profile->max_state;
++	min_freq = (bus->devfreq->profile->freq_table[0] / 1000);
++	max_freq = (bus->devfreq->profile->freq_table[max_state - 1] / 1000);
++	pr_info("exynos-bus: new bus device registered: %s (%6ld KHz ~ %6ld KHz)\n",
++			dev_name(dev), min_freq, max_freq);
++
++	return 0;
++
++err:
++	dev_pm_opp_of_remove_table(dev);
++	clk_disable_unprepare(bus->clk);
++
++	return ret;
++}
++
++static void exynos_bus_shutdown(struct platform_device *pdev)
++{
++	struct exynos_bus *bus = dev_get_drvdata(&pdev->dev);
++
++	devfreq_suspend_device(bus->devfreq);
++}
++
++#ifdef CONFIG_PM_SLEEP
++static int exynos_bus_resume(struct device *dev)
++{
++	struct exynos_bus *bus = dev_get_drvdata(dev);
++	int ret;
++
++	ret = exynos_bus_enable_edev(bus);
++	if (ret < 0) {
++		dev_err(dev, "failed to enable the devfreq-event devices\n");
++		return ret;
++	}
++
++	return 0;
++}
++
++static int exynos_bus_suspend(struct device *dev)
++{
++	struct exynos_bus *bus = dev_get_drvdata(dev);
++	int ret;
++
++	ret = exynos_bus_disable_edev(bus);
++	if (ret < 0) {
++		dev_err(dev, "failed to disable the devfreq-event devices\n");
++		return ret;
++	}
++
++	return 0;
++}
++#endif
++
++static const struct dev_pm_ops exynos_bus_pm = {
++	SET_SYSTEM_SLEEP_PM_OPS(exynos_bus_suspend, exynos_bus_resume)
++};
++
++static const struct of_device_id exynos_bus_of_match[] = {
++	{ .compatible = "samsung,exynos-bus", },
++	{ /* sentinel */ },
++};
++MODULE_DEVICE_TABLE(of, exynos_bus_of_match);
++
++static struct platform_driver exynos_bus_platdrv = {
++	.probe		= exynos_bus_probe,
++	.shutdown	= exynos_bus_shutdown,
++	.driver = {
++		.name	= "exynos-bus",
++		.pm	= &exynos_bus_pm,
++		.of_match_table = of_match_ptr(exynos_bus_of_match),
++	},
++};
++module_platform_driver(exynos_bus_platdrv);
++
++MODULE_DESCRIPTION("Generic Exynos Bus frequency driver");
++MODULE_AUTHOR("Chanwoo Choi <cw00.choi@samsung.com>");
++MODULE_LICENSE("GPL v2");
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/memory/jedec_ddr.h ./drivers/memory/jedec_ddr.h
+--- ../ubuntu-eoan.orig/drivers/memory/jedec_ddr.h	2019-10-30 11:17:19.000000000 +1100
++++ ./drivers/memory/jedec_ddr.h	2019-11-13 18:20:18.720214040 +1100
+@@ -29,6 +29,7 @@
+ #define DDR_TYPE_LPDDR2_S4	3
+ #define DDR_TYPE_LPDDR2_S2	4
+ #define DDR_TYPE_LPDDR2_NVM	5
++#define DDR_TYPE_LPDDR3		6
+ 
+ /* DDR IO width */
+ #define DDR_IO_WIDTH_4		1
+@@ -169,4 +170,64 @@
+ 	lpddr2_jedec_timings[NUM_DDR_TIMING_TABLE_ENTRIES];
+ extern const struct lpddr2_min_tck lpddr2_jedec_min_tck;
+ 
++/*
++ * Structure for timings for LPDDR3 based on LPDDR2 plus additional fields.
++ * All parameters are in pico seconds(ps) excluding max_freq, min_freq which
++ * are in Hz.
++ */
++struct lpddr3_timings {
++	u32 max_freq;
++	u32 min_freq;
++	u32 tRFC;
++	u32 tRRD;
++	u32 tRPab;
++	u32 tRPpb;
++	u32 tRCD;
++	u32 tRC;
++	u32 tRAS;
++	u32 tWTR;
++	u32 tWR;
++	u32 tRTP;
++	u32 tW2W_C2C;
++	u32 tR2R_C2C;
++	u32 tWL;
++	u32 tDQSCK;
++	u32 tRL;
++	u32 tFAW;
++	u32 tXSR;
++	u32 tXP;
++	u32 tCKE;
++	u32 tCKESR;
++	u32 tMRD;
++};
++
++/*
++ * Min value for some parameters in terms of number of tCK cycles(nCK)
++ * Please set to zero parameters that are not valid for a given memory
++ * type
++ */
++struct lpddr3_min_tck {
++	u32 tRFC;
++	u32 tRRD;
++	u32 tRPab;
++	u32 tRPpb;
++	u32 tRCD;
++	u32 tRC;
++	u32 tRAS;
++	u32 tWTR;
++	u32 tWR;
++	u32 tRTP;
++	u32 tW2W_C2C;
++	u32 tR2R_C2C;
++	u32 tWL;
++	u32 tDQSCK;
++	u32 tRL;
++	u32 tFAW;
++	u32 tXSR;
++	u32 tXP;
++	u32 tCKE;
++	u32 tCKESR;
++	u32 tMRD;
++};
++
+ #endif /* __JEDEC_DDR_H */
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/memory/of_memory.c ./drivers/memory/of_memory.c
+--- ../ubuntu-eoan.orig/drivers/memory/of_memory.c	2019-10-30 11:17:19.000000000 +1100
++++ ./drivers/memory/of_memory.c	2019-11-13 18:20:18.724214055 +1100
+@@ -3,6 +3,7 @@
+  * OpenFirmware helpers for memory drivers
+  *
+  * Copyright (C) 2012 Texas Instruments, Inc.
++ * Copyright (C) 2019 Samsung Electronics Co., Ltd.
+  */
+ 
+ #include <linux/device.h>
+@@ -149,3 +150,151 @@
+ 	return lpddr2_jedec_timings;
+ }
+ EXPORT_SYMBOL(of_get_ddr_timings);
++
++/**
++ * of_lpddr3_get_min_tck() - extract min timing values for lpddr3
++ * @np: pointer to ddr device tree node
++ * @device: device requesting for min timing values
++ *
++ * Populates the lpddr3_min_tck structure by extracting data
++ * from device tree node. Returns a pointer to the populated
++ * structure. If any error in populating the structure, returns NULL.
++ */
++const struct lpddr3_min_tck *of_lpddr3_get_min_tck(struct device_node *np,
++						   struct device *dev)
++{
++	int			ret = 0;
++	struct lpddr3_min_tck	*min;
++
++	min = devm_kzalloc(dev, sizeof(*min), GFP_KERNEL);
++	if (!min)
++		goto default_min_tck;
++
++	ret |= of_property_read_u32(np, "tRFC-min-tck", &min->tRFC);
++	ret |= of_property_read_u32(np, "tRRD-min-tck", &min->tRRD);
++	ret |= of_property_read_u32(np, "tRPab-min-tck", &min->tRPab);
++	ret |= of_property_read_u32(np, "tRPpb-min-tck", &min->tRPpb);
++	ret |= of_property_read_u32(np, "tRCD-min-tck", &min->tRCD);
++	ret |= of_property_read_u32(np, "tRC-min-tck", &min->tRC);
++	ret |= of_property_read_u32(np, "tRAS-min-tck", &min->tRAS);
++	ret |= of_property_read_u32(np, "tWTR-min-tck", &min->tWTR);
++	ret |= of_property_read_u32(np, "tWR-min-tck", &min->tWR);
++	ret |= of_property_read_u32(np, "tRTP-min-tck", &min->tRTP);
++	ret |= of_property_read_u32(np, "tW2W-C2C-min-tck", &min->tW2W_C2C);
++	ret |= of_property_read_u32(np, "tR2R-C2C-min-tck", &min->tR2R_C2C);
++	ret |= of_property_read_u32(np, "tWL-min-tck", &min->tWL);
++	ret |= of_property_read_u32(np, "tDQSCK-min-tck", &min->tDQSCK);
++	ret |= of_property_read_u32(np, "tRL-min-tck", &min->tRL);
++	ret |= of_property_read_u32(np, "tFAW-min-tck", &min->tFAW);
++	ret |= of_property_read_u32(np, "tXSR-min-tck", &min->tXSR);
++	ret |= of_property_read_u32(np, "tXP-min-tck", &min->tXP);
++	ret |= of_property_read_u32(np, "tCKE-min-tck", &min->tCKE);
++	ret |= of_property_read_u32(np, "tCKESR-min-tck", &min->tCKESR);
++	ret |= of_property_read_u32(np, "tMRD-min-tck", &min->tMRD);
++
++	if (ret) {
++		dev_warn(dev, "%s: errors while parsing min-tck values\n",
++			 __func__);
++		devm_kfree(dev, min);
++		goto default_min_tck;
++	}
++
++	return min;
++
++default_min_tck:
++	dev_warn(dev, "%s: using default min-tck values\n", __func__);
++	return NULL;
++}
++EXPORT_SYMBOL(of_lpddr3_get_min_tck);
++
++static int of_lpddr3_do_get_timings(struct device_node *np,
++				    struct lpddr3_timings *tim)
++{
++	int ret;
++
++	/* The 'reg' param required since DT has changed, used as 'max-freq' */
++	ret = of_property_read_u32(np, "reg", &tim->max_freq);
++	ret |= of_property_read_u32(np, "min-freq", &tim->min_freq);
++	ret |= of_property_read_u32(np, "tRFC", &tim->tRFC);
++	ret |= of_property_read_u32(np, "tRRD", &tim->tRRD);
++	ret |= of_property_read_u32(np, "tRPab", &tim->tRPab);
++	ret |= of_property_read_u32(np, "tRPpb", &tim->tRPpb);
++	ret |= of_property_read_u32(np, "tRCD", &tim->tRCD);
++	ret |= of_property_read_u32(np, "tRC", &tim->tRC);
++	ret |= of_property_read_u32(np, "tRAS", &tim->tRAS);
++	ret |= of_property_read_u32(np, "tWTR", &tim->tWTR);
++	ret |= of_property_read_u32(np, "tWR", &tim->tWR);
++	ret |= of_property_read_u32(np, "tRTP", &tim->tRTP);
++	ret |= of_property_read_u32(np, "tW2W-C2C", &tim->tW2W_C2C);
++	ret |= of_property_read_u32(np, "tR2R-C2C", &tim->tR2R_C2C);
++	ret |= of_property_read_u32(np, "tFAW", &tim->tFAW);
++	ret |= of_property_read_u32(np, "tXSR", &tim->tXSR);
++	ret |= of_property_read_u32(np, "tXP", &tim->tXP);
++	ret |= of_property_read_u32(np, "tCKE", &tim->tCKE);
++	ret |= of_property_read_u32(np, "tCKESR", &tim->tCKESR);
++	ret |= of_property_read_u32(np, "tMRD", &tim->tMRD);
++
++	return ret;
++}
++
++/**
++ * of_lpddr3_get_ddr_timings() - extracts the lpddr3 timings and updates no of
++ * frequencies available.
++ * @np_ddr: Pointer to ddr device tree node
++ * @dev: Device requesting for ddr timings
++ * @device_type: Type of ddr
++ * @nr_frequencies: No of frequencies available for ddr
++ * (updated by this function)
++ *
++ * Populates lpddr3_timings structure by extracting data from device
++ * tree node. Returns pointer to populated structure. If any error
++ * while populating, returns NULL.
++ */
++const struct lpddr3_timings
++*of_lpddr3_get_ddr_timings(struct device_node *np_ddr, struct device *dev,
++			   u32 device_type, u32 *nr_frequencies)
++{
++	struct lpddr3_timings	*timings = NULL;
++	u32			arr_sz = 0, i = 0;
++	struct device_node	*np_tim;
++	char			*tim_compat = NULL;
++
++	switch (device_type) {
++	case DDR_TYPE_LPDDR3:
++		tim_compat = "jedec,lpddr3-timings";
++		break;
++	default:
++		dev_warn(dev, "%s: un-supported memory type\n", __func__);
++	}
++
++	for_each_child_of_node(np_ddr, np_tim)
++		if (of_device_is_compatible(np_tim, tim_compat))
++			arr_sz++;
++
++	if (arr_sz)
++		timings = devm_kcalloc(dev, arr_sz, sizeof(*timings),
++				       GFP_KERNEL);
++
++	if (!timings)
++		goto default_timings;
++
++	for_each_child_of_node(np_ddr, np_tim) {
++		if (of_device_is_compatible(np_tim, tim_compat)) {
++			if (of_lpddr3_do_get_timings(np_tim, &timings[i])) {
++				devm_kfree(dev, timings);
++				goto default_timings;
++			}
++			i++;
++		}
++	}
++
++	*nr_frequencies = arr_sz;
++
++	return timings;
++
++default_timings:
++	dev_warn(dev, "%s: failed to get timings\n", __func__);
++	*nr_frequencies = 0;
++	return NULL;
++}
++EXPORT_SYMBOL(of_lpddr3_get_ddr_timings);
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/memory/of_memory.h ./drivers/memory/of_memory.h
+--- ../ubuntu-eoan.orig/drivers/memory/of_memory.h	2019-10-30 11:17:19.000000000 +1100
++++ ./drivers/memory/of_memory.h	2019-11-13 18:20:18.724214055 +1100
+@@ -14,6 +14,11 @@
+ extern const struct lpddr2_timings
+ 	*of_get_ddr_timings(struct device_node *np_ddr, struct device *dev,
+ 	u32 device_type, u32 *nr_frequencies);
++extern const struct lpddr3_min_tck
++	*of_lpddr3_get_min_tck(struct device_node *np, struct device *dev);
++extern const struct lpddr3_timings
++	*of_lpddr3_get_ddr_timings(struct device_node *np_ddr,
++	struct device *dev, u32 device_type, u32 *nr_frequencies);
+ #else
+ static inline const struct lpddr2_min_tck
+ 	*of_get_min_tck(struct device_node *np, struct device *dev)
+@@ -27,6 +32,19 @@
+ {
+ 	return NULL;
+ }
++
++static inline const struct lpddr3_min_tck
++	*of_lpddr3_get_min_tck(struct device_node *np, struct device *dev)
++{
++	return NULL;
++}
++
++static inline const struct lpddr3_timings
++	*of_lpddr3_get_ddr_timings(struct device_node *np_ddr,
++	struct device *dev, u32 device_type, u32 *nr_frequencies)
++{
++	return NULL;
++}
+ #endif /* CONFIG_OF && CONFIG_DDR */
+ 
+ #endif /* __LINUX_MEMORY_OF_REG_ */
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/memory/samsung/exynos5422-dmc.c ./drivers/memory/samsung/exynos5422-dmc.c
+--- ../ubuntu-eoan.orig/drivers/memory/samsung/exynos5422-dmc.c	1970-01-01 10:00:00.000000000 +1000
++++ ./drivers/memory/samsung/exynos5422-dmc.c	2019-11-13 18:20:18.724214055 +1100
+@@ -0,0 +1,1550 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (c) 2019 Samsung Electronics Co., Ltd.
++ * Author: Lukasz Luba <l.luba@partner.samsung.com>
++ */
++
++#include <linux/clk.h>
++#include <linux/devfreq.h>
++#include <linux/devfreq-event.h>
++#include <linux/device.h>
++#include <linux/interrupt.h>
++#include <linux/io.h>
++#include <linux/mfd/syscon.h>
++#include <linux/module.h>
++#include <linux/of_device.h>
++#include <linux/pm_opp.h>
++#include <linux/platform_device.h>
++#include <linux/regmap.h>
++#include <linux/regulator/consumer.h>
++#include <linux/slab.h>
++#include "../jedec_ddr.h"
++#include "../of_memory.h"
++
++#define EXYNOS5_DREXI_TIMINGAREF		(0x0030)
++#define EXYNOS5_DREXI_TIMINGROW0		(0x0034)
++#define EXYNOS5_DREXI_TIMINGDATA0		(0x0038)
++#define EXYNOS5_DREXI_TIMINGPOWER0		(0x003C)
++#define EXYNOS5_DREXI_TIMINGROW1		(0x00E4)
++#define EXYNOS5_DREXI_TIMINGDATA1		(0x00E8)
++#define EXYNOS5_DREXI_TIMINGPOWER1		(0x00EC)
++#define CDREX_PAUSE				(0x2091c)
++#define CDREX_LPDDR3PHY_CON3			(0x20a20)
++#define CDREX_LPDDR3PHY_CLKM_SRC		(0x20700)
++#define EXYNOS5_TIMING_SET_SWI			BIT(28)
++#define USE_MX_MSPLL_TIMINGS			(1)
++#define USE_BPLL_TIMINGS			(0)
++#define EXYNOS5_AREF_NORMAL			(0x2e)
++
++#define DREX_PPCCLKCON		(0x0130)
++#define DREX_PEREV2CONFIG	(0x013c)
++#define DREX_PMNC_PPC		(0xE000)
++#define DREX_CNTENS_PPC		(0xE010)
++#define DREX_CNTENC_PPC		(0xE020)
++#define DREX_INTENS_PPC		(0xE030)
++#define DREX_INTENC_PPC		(0xE040)
++#define DREX_FLAG_PPC		(0xE050)
++#define DREX_PMCNT2_PPC		(0xE130)
++
++/*
++ * A value for register DREX_PMNC_PPC which should be written to reset
++ * the cycle counter CCNT (a reference wall clock). It sets zero to the
++ * CCNT counter.
++ */
++#define CC_RESET		BIT(2)
++
++/*
++ * A value for register DREX_PMNC_PPC which does the reset of all performance
++ * counters to zero.
++ */
++#define PPC_COUNTER_RESET	BIT(1)
++
++/*
++ * Enables all configured counters (including cycle counter). The value should
++ * be written to the register DREX_PMNC_PPC.
++ */
++#define PPC_ENABLE		BIT(0)
++
++/* A value for register DREX_PPCCLKCON which enables performance events clock.
++ * Must be written before first access to the performance counters register
++ * set, otherwise it could crash.
++ */
++#define PEREV_CLK_EN		BIT(0)
++
++/*
++ * Values which are used to enable counters, interrupts or configure flags of
++ * the performance counters. They configure counter 2 and cycle counter.
++ */
++#define PERF_CNT2		BIT(2)
++#define PERF_CCNT		BIT(31)
++
++/*
++ * Performance event types which are used for setting the preferred event
++ * to track in the counters.
++ * There is a set of different types, the values are from range 0 to 0x6f.
++ * These settings should be written to the configuration register which manages
++ * the type of the event (register DREX_PEREV2CONFIG).
++ */
++#define READ_TRANSFER_CH0	(0x6d)
++#define READ_TRANSFER_CH1	(0x6f)
++
++#define PERF_COUNTER_START_VALUE 0xff000000
++#define PERF_EVENT_UP_DOWN_THRESHOLD 900000000ULL
++
++/**
++ * struct dmc_opp_table - Operating level desciption
++ *
++ * Covers frequency and voltage settings of the DMC operating mode.
++ */
++struct dmc_opp_table {
++	u32 freq_hz;
++	u32 volt_uv;
++};
++
++/**
++ * struct exynos5_dmc - main structure describing DMC device
++ *
++ * The main structure for the Dynamic Memory Controller which covers clocks,
++ * memory regions, HW information, parameters and current operating mode.
++ */
++struct exynos5_dmc {
++	struct device *dev;
++	struct devfreq *df;
++	struct devfreq_simple_ondemand_data gov_data;
++	void __iomem *base_drexi0;
++	void __iomem *base_drexi1;
++	struct regmap *clk_regmap;
++	struct mutex lock;
++	unsigned long curr_rate;
++	unsigned long curr_volt;
++	unsigned long bypass_rate;
++	struct dmc_opp_table *opp;
++	struct dmc_opp_table opp_bypass;
++	int opp_count;
++	u32 timings_arr_size;
++	u32 *timing_row;
++	u32 *timing_data;
++	u32 *timing_power;
++	const struct lpddr3_timings *timings;
++	const struct lpddr3_min_tck *min_tck;
++	u32 bypass_timing_row;
++	u32 bypass_timing_data;
++	u32 bypass_timing_power;
++	struct regulator *vdd_mif;
++	struct clk *fout_spll;
++	struct clk *fout_bpll;
++	struct clk *mout_spll;
++	struct clk *mout_bpll;
++	struct clk *mout_mclk_cdrex;
++	struct clk *mout_mx_mspll_ccore;
++	struct clk *mx_mspll_ccore_phy;
++	struct clk *mout_mx_mspll_ccore_phy;
++	struct devfreq_event_dev **counter;
++	int num_counters;
++	u64 last_overflow_ts[2];
++	unsigned long load;
++	unsigned long total;
++	bool in_irq_mode;
++};
++
++#define TIMING_FIELD(t_name, t_bit_beg, t_bit_end) \
++	{ .name = t_name, .bit_beg = t_bit_beg, .bit_end = t_bit_end }
++
++#define TIMING_VAL2REG(timing, t_val)			\
++({							\
++		u32 __val;				\
++		__val = (t_val) << (timing)->bit_beg;	\
++		__val;					\
++})
++
++struct timing_reg {
++	char *name;
++	int bit_beg;
++	int bit_end;
++	unsigned int val;
++};
++
++static const struct timing_reg timing_row[] = {
++	TIMING_FIELD("tRFC", 24, 31),
++	TIMING_FIELD("tRRD", 20, 23),
++	TIMING_FIELD("tRP", 16, 19),
++	TIMING_FIELD("tRCD", 12, 15),
++	TIMING_FIELD("tRC", 6, 11),
++	TIMING_FIELD("tRAS", 0, 5),
++};
++
++static const struct timing_reg timing_data[] = {
++	TIMING_FIELD("tWTR", 28, 31),
++	TIMING_FIELD("tWR", 24, 27),
++	TIMING_FIELD("tRTP", 20, 23),
++	TIMING_FIELD("tW2W-C2C", 14, 14),
++	TIMING_FIELD("tR2R-C2C", 12, 12),
++	TIMING_FIELD("WL", 8, 11),
++	TIMING_FIELD("tDQSCK", 4, 7),
++	TIMING_FIELD("RL", 0, 3),
++};
++
++static const struct timing_reg timing_power[] = {
++	TIMING_FIELD("tFAW", 26, 31),
++	TIMING_FIELD("tXSR", 16, 25),
++	TIMING_FIELD("tXP", 8, 15),
++	TIMING_FIELD("tCKE", 4, 7),
++	TIMING_FIELD("tMRD", 0, 3),
++};
++
++#define TIMING_COUNT (ARRAY_SIZE(timing_row) + ARRAY_SIZE(timing_data) + \
++		      ARRAY_SIZE(timing_power))
++
++static int exynos5_counters_set_event(struct exynos5_dmc *dmc)
++{
++	int i, ret;
++
++	for (i = 0; i < dmc->num_counters; i++) {
++		if (!dmc->counter[i])
++			continue;
++		ret = devfreq_event_set_event(dmc->counter[i]);
++		if (ret < 0)
++			return ret;
++	}
++	return 0;
++}
++
++static int exynos5_counters_enable_edev(struct exynos5_dmc *dmc)
++{
++	int i, ret;
++
++	for (i = 0; i < dmc->num_counters; i++) {
++		if (!dmc->counter[i])
++			continue;
++		ret = devfreq_event_enable_edev(dmc->counter[i]);
++		if (ret < 0)
++			return ret;
++	}
++	return 0;
++}
++
++static int exynos5_counters_disable_edev(struct exynos5_dmc *dmc)
++{
++	int i, ret;
++
++	for (i = 0; i < dmc->num_counters; i++) {
++		if (!dmc->counter[i])
++			continue;
++		ret = devfreq_event_disable_edev(dmc->counter[i]);
++		if (ret < 0)
++			return ret;
++	}
++	return 0;
++}
++
++/**
++ * find_target_freq_id() - Finds requested frequency in local DMC configuration
++ * @dmc:	device for which the information is checked
++ * @target_rate:	requested frequency in KHz
++ *
++ * Seeks in the local DMC driver structure for the requested frequency value
++ * and returns index or error value.
++ */
++static int find_target_freq_idx(struct exynos5_dmc *dmc,
++				unsigned long target_rate)
++{
++	int i;
++
++	for (i = dmc->opp_count - 1; i >= 0; i--)
++		if (dmc->opp[i].freq_hz <= target_rate)
++			return i;
++
++	return -EINVAL;
++}
++
++/**
++ * exynos5_switch_timing_regs() - Changes bank register set for DRAM timings
++ * @dmc:	device for which the new settings is going to be applied
++ * @set:	boolean variable passing set value
++ *
++ * Changes the register set, which holds timing parameters.
++ * There is two register sets: 0 and 1. The register set 0
++ * is used in normal operation when the clock is provided from main PLL.
++ * The bank register set 1 is used when the main PLL frequency is going to be
++ * changed and the clock is taken from alternative, stable source.
++ * This function switches between these banks according to the
++ * currently used clock source.
++ */
++static void exynos5_switch_timing_regs(struct exynos5_dmc *dmc, bool set)
++{
++	unsigned int reg;
++	int ret;
++
++	ret = regmap_read(dmc->clk_regmap, CDREX_LPDDR3PHY_CON3, &reg);
++
++	if (set)
++		reg |= EXYNOS5_TIMING_SET_SWI;
++	else
++		reg &= ~EXYNOS5_TIMING_SET_SWI;
++
++	regmap_write(dmc->clk_regmap, CDREX_LPDDR3PHY_CON3, reg);
++}
++
++/**
++ * exynos5_init_freq_table() - Initialized PM OPP framework
++ * @dmc:	DMC device for which the frequencies are used for OPP init
++ * @profile:	devfreq device's profile
++ *
++ * Populate the devfreq device's OPP table based on current frequency, voltage.
++ */
++static int exynos5_init_freq_table(struct exynos5_dmc *dmc,
++				   struct devfreq_dev_profile *profile)
++{
++	int i, ret;
++	int idx;
++	unsigned long freq;
++
++	ret = dev_pm_opp_of_add_table(dmc->dev);
++	if (ret < 0) {
++		dev_err(dmc->dev, "Failed to get OPP table\n");
++		return ret;
++	}
++
++	dmc->opp_count = dev_pm_opp_get_opp_count(dmc->dev);
++
++	dmc->opp = devm_kmalloc_array(dmc->dev, dmc->opp_count,
++				      sizeof(struct dmc_opp_table), GFP_KERNEL);
++	if (!dmc->opp)
++		goto err_opp;
++
++	idx = dmc->opp_count - 1;
++	for (i = 0, freq = ULONG_MAX; i < dmc->opp_count; i++, freq--) {
++		struct dev_pm_opp *opp;
++
++		opp = dev_pm_opp_find_freq_floor(dmc->dev, &freq);
++		if (IS_ERR(opp))
++			goto err_opp;
++
++		dmc->opp[idx - i].freq_hz = freq;
++		dmc->opp[idx - i].volt_uv = dev_pm_opp_get_voltage(opp);
++
++		dev_pm_opp_put(opp);
++	}
++
++	return 0;
++
++err_opp:
++	dev_pm_opp_of_remove_table(dmc->dev);
++
++	return -EINVAL;
++}
++
++/**
++ * exynos5_set_bypass_dram_timings() - Low-level changes of the DRAM timings
++ * @dmc:	device for which the new settings is going to be applied
++ * @param:	DRAM parameters which passes timing data
++ *
++ * Low-level function for changing timings for DRAM memory clocking from
++ * 'bypass' clock source (fixed frequency @400MHz).
++ * It uses timing bank registers set 1.
++ */
++static void exynos5_set_bypass_dram_timings(struct exynos5_dmc *dmc)
++{
++	writel(EXYNOS5_AREF_NORMAL,
++	       dmc->base_drexi0 + EXYNOS5_DREXI_TIMINGAREF);
++
++	writel(dmc->bypass_timing_row,
++	       dmc->base_drexi0 + EXYNOS5_DREXI_TIMINGROW1);
++	writel(dmc->bypass_timing_row,
++	       dmc->base_drexi1 + EXYNOS5_DREXI_TIMINGROW1);
++	writel(dmc->bypass_timing_data,
++	       dmc->base_drexi0 + EXYNOS5_DREXI_TIMINGDATA1);
++	writel(dmc->bypass_timing_data,
++	       dmc->base_drexi1 + EXYNOS5_DREXI_TIMINGDATA1);
++	writel(dmc->bypass_timing_power,
++	       dmc->base_drexi0 + EXYNOS5_DREXI_TIMINGPOWER1);
++	writel(dmc->bypass_timing_power,
++	       dmc->base_drexi1 + EXYNOS5_DREXI_TIMINGPOWER1);
++}
++
++/**
++ * exynos5_dram_change_timings() - Low-level changes of the DRAM final timings
++ * @dmc:	device for which the new settings is going to be applied
++ * @target_rate:	target frequency of the DMC
++ *
++ * Low-level function for changing timings for DRAM memory operating from main
++ * clock source (BPLL), which can have different frequencies. Thus, each
++ * frequency must have corresponding timings register values in order to keep
++ * the needed delays.
++ * It uses timing bank registers set 0.
++ */
++static int exynos5_dram_change_timings(struct exynos5_dmc *dmc,
++				       unsigned long target_rate)
++{
++	int idx;
++
++	for (idx = dmc->opp_count - 1; idx >= 0; idx--)
++		if (dmc->opp[idx].freq_hz <= target_rate)
++			break;
++
++	if (idx < 0)
++		return -EINVAL;
++
++	writel(EXYNOS5_AREF_NORMAL,
++	       dmc->base_drexi0 + EXYNOS5_DREXI_TIMINGAREF);
++
++	writel(dmc->timing_row[idx],
++	       dmc->base_drexi0 + EXYNOS5_DREXI_TIMINGROW0);
++	writel(dmc->timing_row[idx],
++	       dmc->base_drexi1 + EXYNOS5_DREXI_TIMINGROW0);
++	writel(dmc->timing_data[idx],
++	       dmc->base_drexi0 + EXYNOS5_DREXI_TIMINGDATA0);
++	writel(dmc->timing_data[idx],
++	       dmc->base_drexi1 + EXYNOS5_DREXI_TIMINGDATA0);
++	writel(dmc->timing_power[idx],
++	       dmc->base_drexi0 + EXYNOS5_DREXI_TIMINGPOWER0);
++	writel(dmc->timing_power[idx],
++	       dmc->base_drexi1 + EXYNOS5_DREXI_TIMINGPOWER0);
++
++	return 0;
++}
++
++/**
++ * exynos5_dmc_align_target_voltage() - Sets the final voltage for the DMC
++ * @dmc:	device for which it is going to be set
++ * @target_volt:	new voltage which is chosen to be final
++ *
++ * Function tries to align voltage to the safe level for 'normal' mode.
++ * It checks the need of higher voltage and changes the value. The target
++ * voltage might be lower that currently set and still the system will be
++ * stable.
++ */
++static int exynos5_dmc_align_target_voltage(struct exynos5_dmc *dmc,
++					    unsigned long target_volt)
++{
++	int ret = 0;
++
++	if (dmc->curr_volt <= target_volt)
++		return 0;
++
++	ret = regulator_set_voltage(dmc->vdd_mif, target_volt,
++				    target_volt);
++	if (!ret)
++		dmc->curr_volt = target_volt;
++
++	return ret;
++}
++
++/**
++ * exynos5_dmc_align_bypass_voltage() - Sets the voltage for the DMC
++ * @dmc:	device for which it is going to be set
++ * @target_volt:	new voltage which is chosen to be final
++ *
++ * Function tries to align voltage to the safe level for the 'bypass' mode.
++ * It checks the need of higher voltage and changes the value.
++ * The target voltage must not be less than currently needed, because
++ * for current frequency the device might become unstable.
++ */
++static int exynos5_dmc_align_bypass_voltage(struct exynos5_dmc *dmc,
++					    unsigned long target_volt)
++{
++	int ret = 0;
++	unsigned long bypass_volt = dmc->opp_bypass.volt_uv;
++
++	target_volt = max(bypass_volt, target_volt);
++
++	if (dmc->curr_volt >= target_volt)
++		return 0;
++
++	ret = regulator_set_voltage(dmc->vdd_mif, target_volt,
++				    target_volt);
++	if (!ret)
++		dmc->curr_volt = target_volt;
++
++	return ret;
++}
++
++/**
++ * exynos5_dmc_align_bypass_dram_timings() - Chooses and sets DRAM timings
++ * @dmc:	device for which it is going to be set
++ * @target_rate:	new frequency which is chosen to be final
++ *
++ * Function changes the DRAM timings for the temporary 'bypass' mode.
++ */
++static int exynos5_dmc_align_bypass_dram_timings(struct exynos5_dmc *dmc,
++						 unsigned long target_rate)
++{
++	int idx = find_target_freq_idx(dmc, target_rate);
++
++	if (idx < 0)
++		return -EINVAL;
++
++	exynos5_set_bypass_dram_timings(dmc);
++
++	return 0;
++}
++
++/**
++ * exynos5_dmc_switch_to_bypass_configuration() - Switching to temporary clock
++ * @dmc:	DMC device for which the switching is going to happen
++ * @target_rate:	new frequency which is going to be set as a final
++ * @target_volt:	new voltage which is going to be set as a final
++ *
++ * Function configures DMC and clocks for operating in temporary 'bypass' mode.
++ * This mode is used only temporary but if required, changes voltage and timings
++ * for DRAM chips. It switches the main clock to stable clock source for the
++ * period of the main PLL reconfiguration.
++ */
++static int
++exynos5_dmc_switch_to_bypass_configuration(struct exynos5_dmc *dmc,
++					   unsigned long target_rate,
++					   unsigned long target_volt)
++{
++	int ret;
++
++	/*
++	 * Having higher voltage for a particular frequency does not harm
++	 * the chip. Use it for the temporary frequency change when one
++	 * voltage manipulation might be avoided.
++	 */
++	ret = exynos5_dmc_align_bypass_voltage(dmc, target_volt);
++	if (ret)
++		return ret;
++
++	/*
++	 * Longer delays for DRAM does not cause crash, the opposite does.
++	 */
++	ret = exynos5_dmc_align_bypass_dram_timings(dmc, target_rate);
++	if (ret)
++		return ret;
++
++	/*
++	 * Delays are long enough, so use them for the new coming clock.
++	 */
++	exynos5_switch_timing_regs(dmc, USE_MX_MSPLL_TIMINGS);
++
++	return ret;
++}
++
++/**
++ * exynos5_dmc_change_freq_and_volt() - Changes voltage and frequency of the DMC
++ * using safe procedure
++ * @dmc:	device for which the frequency is going to be changed
++ * @target_rate:	requested new frequency
++ * @target_volt:	requested voltage which corresponds to the new frequency
++ *
++ * The DMC frequency change procedure requires a few steps.
++ * The main requirement is to change the clock source in the clk mux
++ * for the time of main clock PLL locking. The assumption is that the
++ * alternative clock source set as parent is stable.
++ * The second parent's clock frequency is fixed to 400MHz, it is named 'bypass'
++ * clock. This requires alignment in DRAM timing parameters for the new
++ * T-period. There is two bank sets for keeping DRAM
++ * timings: set 0 and set 1. The set 0 is used when main clock source is
++ * chosen. The 2nd set of regs is used for 'bypass' clock. Switching between
++ * the two bank sets is part of the process.
++ * The voltage must also be aligned to the minimum required level. There is
++ * this intermediate step with switching to 'bypass' parent clock source.
++ * if the old voltage is lower, it requires an increase of the voltage level.
++ * The complexity of the voltage manipulation is hidden in low level function.
++ * In this function there is last alignment of the voltage level at the end.
++ */
++static int
++exynos5_dmc_change_freq_and_volt(struct exynos5_dmc *dmc,
++				 unsigned long target_rate,
++				 unsigned long target_volt)
++{
++	int ret;
++
++	ret = exynos5_dmc_switch_to_bypass_configuration(dmc, target_rate,
++							 target_volt);
++	if (ret)
++		return ret;
++
++	/*
++	 * Voltage is set at least to a level needed for this frequency,
++	 * so switching clock source is safe now.
++	 */
++	clk_prepare_enable(dmc->fout_spll);
++	clk_prepare_enable(dmc->mout_spll);
++	clk_prepare_enable(dmc->mout_mx_mspll_ccore);
++
++	ret = clk_set_parent(dmc->mout_mclk_cdrex, dmc->mout_mx_mspll_ccore);
++	if (ret)
++		goto disable_clocks;
++
++	/*
++	 * We are safe to increase the timings for current bypass frequency.
++	 * Thanks to this the settings will be ready for the upcoming clock
++	 * source change.
++	 */
++	exynos5_dram_change_timings(dmc, target_rate);
++
++	clk_set_rate(dmc->fout_bpll, target_rate);
++
++	exynos5_switch_timing_regs(dmc, USE_BPLL_TIMINGS);
++
++	ret = clk_set_parent(dmc->mout_mclk_cdrex, dmc->mout_bpll);
++	if (ret)
++		goto disable_clocks;
++
++	/*
++	 * Make sure if the voltage is not from 'bypass' settings and align to
++	 * the right level for power efficiency.
++	 */
++	ret = exynos5_dmc_align_target_voltage(dmc, target_volt);
++
++disable_clocks:
++	clk_disable_unprepare(dmc->mout_mx_mspll_ccore);
++	clk_disable_unprepare(dmc->mout_spll);
++	clk_disable_unprepare(dmc->fout_spll);
++
++	return ret;
++}
++
++/**
++ * exynos5_dmc_get_volt_freq() - Gets the frequency and voltage from the OPP
++ * table.
++ * @dmc:	device for which the frequency is going to be changed
++ * @freq:       requested frequency in KHz
++ * @target_rate:	returned frequency which is the same or lower than
++ *			requested
++ * @target_volt:	returned voltage which corresponds to the returned
++ *			frequency
++ *
++ * Function gets requested frequency and checks OPP framework for needed
++ * frequency and voltage. It populates the values 'target_rate' and
++ * 'target_volt' or returns error value when OPP framework fails.
++ */
++static int exynos5_dmc_get_volt_freq(struct exynos5_dmc *dmc,
++				     unsigned long *freq,
++				     unsigned long *target_rate,
++				     unsigned long *target_volt, u32 flags)
++{
++	struct dev_pm_opp *opp;
++
++	opp = devfreq_recommended_opp(dmc->dev, freq, flags);
++	if (IS_ERR(opp))
++		return PTR_ERR(opp);
++
++	*target_rate = dev_pm_opp_get_freq(opp);
++	*target_volt = dev_pm_opp_get_voltage(opp);
++	dev_pm_opp_put(opp);
++
++	return 0;
++}
++
++/**
++ * exynos5_dmc_target() - Function responsible for changing frequency of DMC
++ * @dev:	device for which the frequency is going to be changed
++ * @freq:	requested frequency in KHz
++ * @flags:	flags provided for this frequency change request
++ *
++ * An entry function provided to the devfreq framework which provides frequency
++ * change of the DMC. The function gets the possible rate from OPP table based
++ * on requested frequency. It calls the next function responsible for the
++ * frequency and voltage change. In case of failure, does not set 'curr_rate'
++ * and returns error value to the framework.
++ */
++static int exynos5_dmc_target(struct device *dev, unsigned long *freq,
++			      u32 flags)
++{
++	struct exynos5_dmc *dmc = dev_get_drvdata(dev);
++	unsigned long target_rate = 0;
++	unsigned long target_volt = 0;
++	int ret;
++
++	ret = exynos5_dmc_get_volt_freq(dmc, freq, &target_rate, &target_volt,
++					flags);
++
++	if (ret)
++		return ret;
++
++	if (target_rate == dmc->curr_rate)
++		return 0;
++
++	mutex_lock(&dmc->lock);
++
++	ret = exynos5_dmc_change_freq_and_volt(dmc, target_rate, target_volt);
++
++	if (ret) {
++		mutex_unlock(&dmc->lock);
++		return ret;
++	}
++
++	dmc->curr_rate = target_rate;
++
++	mutex_unlock(&dmc->lock);
++	return 0;
++}
++
++/**
++ * exynos5_counters_get() - Gets the performance counters values.
++ * @dmc:	device for which the counters are going to be checked
++ * @load_count:	variable which is populated with counter value
++ * @total_count:	variable which is used as 'wall clock' reference
++ *
++ * Function which provides performance counters values. It sums up counters for
++ * two DMC channels. The 'total_count' is used as a reference and max value.
++ * The ratio 'load_count/total_count' shows the busy percentage [0%, 100%].
++ */
++static int exynos5_counters_get(struct exynos5_dmc *dmc,
++				unsigned long *load_count,
++				unsigned long *total_count)
++{
++	unsigned long total = 0;
++	struct devfreq_event_data event;
++	int ret, i;
++
++	*load_count = 0;
++
++	/* Take into account only read+write counters, but stop all */
++	for (i = 0; i < dmc->num_counters; i++) {
++		if (!dmc->counter[i])
++			continue;
++
++		ret = devfreq_event_get_event(dmc->counter[i], &event);
++		if (ret < 0)
++			return ret;
++
++		*load_count += event.load_count;
++
++		if (total < event.total_count)
++			total = event.total_count;
++	}
++
++	*total_count = total;
++
++	return 0;
++}
++
++/**
++ * exynos5_dmc_start_perf_events() - Setup and start performance event counters
++ * @dmc:	device for which the counters are going to be checked
++ * @beg_value:	initial value for the counter
++ *
++ * Function which enables needed counters, interrupts and sets initial values
++ * then starts the counters.
++ */
++static void exynos5_dmc_start_perf_events(struct exynos5_dmc *dmc,
++					  u32 beg_value)
++{
++	/* Enable interrupts for counter 2 */
++	writel(PERF_CNT2, dmc->base_drexi0 + DREX_INTENS_PPC);
++	writel(PERF_CNT2, dmc->base_drexi1 + DREX_INTENS_PPC);
++
++	/* Enable counter 2 and CCNT  */
++	writel(PERF_CNT2 | PERF_CCNT, dmc->base_drexi0 + DREX_CNTENS_PPC);
++	writel(PERF_CNT2 | PERF_CCNT, dmc->base_drexi1 + DREX_CNTENS_PPC);
++
++	/* Clear overflow flag for all counters */
++	writel(PERF_CNT2 | PERF_CCNT, dmc->base_drexi0 + DREX_FLAG_PPC);
++	writel(PERF_CNT2 | PERF_CCNT, dmc->base_drexi1 + DREX_FLAG_PPC);
++
++	/* Reset all counters */
++	writel(CC_RESET | PPC_COUNTER_RESET, dmc->base_drexi0 + DREX_PMNC_PPC);
++	writel(CC_RESET | PPC_COUNTER_RESET, dmc->base_drexi1 + DREX_PMNC_PPC);
++
++	/*
++	 * Set start value for the counters, the number of samples that
++	 * will be gathered is calculated as: 0xffffffff - beg_value
++	 */
++	writel(beg_value, dmc->base_drexi0 + DREX_PMCNT2_PPC);
++	writel(beg_value, dmc->base_drexi1 + DREX_PMCNT2_PPC);
++
++	/* Start all counters */
++	writel(PPC_ENABLE, dmc->base_drexi0 + DREX_PMNC_PPC);
++	writel(PPC_ENABLE, dmc->base_drexi1 + DREX_PMNC_PPC);
++}
++
++/**
++ * exynos5_dmc_perf_events_calc() - Calculate utilization
++ * @dmc:	device for which the counters are going to be checked
++ * @diff_ts:	time between last interrupt and current one
++ *
++ * Function which calculates needed utilization for the devfreq governor.
++ * It prepares values for 'busy_time' and 'total_time' based on elapsed time
++ * between interrupts, which approximates utilization.
++ */
++static void exynos5_dmc_perf_events_calc(struct exynos5_dmc *dmc, u64 diff_ts)
++{
++	/*
++	 * This is a simple algorithm for managing traffic on DMC.
++	 * When there is almost no load the counters overflow every 4s,
++	 * no mater the DMC frequency.
++	 * The high load might be approximated using linear function.
++	 * Knowing that, simple calculation can provide 'busy_time' and
++	 * 'total_time' to the devfreq governor which picks up target
++	 * frequency.
++	 * We want a fast ramp up and slow decay in frequency change function.
++	 */
++	if (diff_ts < PERF_EVENT_UP_DOWN_THRESHOLD) {
++		/*
++		 * Set higher utilization for the simple_ondemand governor.
++		 * The governor should increase the frequency of the DMC.
++		 */
++		dmc->load = 70;
++		dmc->total = 100;
++	} else {
++		/*
++		 * Set low utilization for the simple_ondemand governor.
++		 * The governor should decrease the frequency of the DMC.
++		 */
++		dmc->load = 35;
++		dmc->total = 100;
++	}
++
++	dev_dbg(dmc->dev, "diff_ts=%llu\n", diff_ts);
++}
++
++/**
++ * exynos5_dmc_perf_events_check() - Checks the status of the counters
++ * @dmc:	device for which the counters are going to be checked
++ *
++ * Function which is called from threaded IRQ to check the counters state
++ * and to call approximation for the needed utilization.
++ */
++static void exynos5_dmc_perf_events_check(struct exynos5_dmc *dmc)
++{
++	u32 val;
++	u64 diff_ts, ts;
++
++	ts = ktime_get_ns();
++
++	/* Stop all counters */
++	writel(0, dmc->base_drexi0 + DREX_PMNC_PPC);
++	writel(0, dmc->base_drexi1 + DREX_PMNC_PPC);
++
++	/* Check the source in interrupt flag registers (which channel) */
++	val = readl(dmc->base_drexi0 + DREX_FLAG_PPC);
++	if (val) {
++		diff_ts = ts - dmc->last_overflow_ts[0];
++		dmc->last_overflow_ts[0] = ts;
++		dev_dbg(dmc->dev, "drex0 0xE050 val= 0x%08x\n",  val);
++	} else {
++		val = readl(dmc->base_drexi1 + DREX_FLAG_PPC);
++		diff_ts = ts - dmc->last_overflow_ts[1];
++		dmc->last_overflow_ts[1] = ts;
++		dev_dbg(dmc->dev, "drex1 0xE050 val= 0x%08x\n",  val);
++	}
++
++	exynos5_dmc_perf_events_calc(dmc, diff_ts);
++
++	exynos5_dmc_start_perf_events(dmc, PERF_COUNTER_START_VALUE);
++}
++
++/**
++ * exynos5_dmc_enable_perf_events() - Enable performance events
++ * @dmc:	device for which the counters are going to be checked
++ *
++ * Function which is setup needed environment and enables counters.
++ */
++static void exynos5_dmc_enable_perf_events(struct exynos5_dmc *dmc)
++{
++	u64 ts;
++
++	/* Enable Performance Event Clock */
++	writel(PEREV_CLK_EN, dmc->base_drexi0 + DREX_PPCCLKCON);
++	writel(PEREV_CLK_EN, dmc->base_drexi1 + DREX_PPCCLKCON);
++
++	/* Select read transfers as performance event2 */
++	writel(READ_TRANSFER_CH0, dmc->base_drexi0 + DREX_PEREV2CONFIG);
++	writel(READ_TRANSFER_CH1, dmc->base_drexi1 + DREX_PEREV2CONFIG);
++
++	ts = ktime_get_ns();
++	dmc->last_overflow_ts[0] = ts;
++	dmc->last_overflow_ts[1] = ts;
++
++	/* Devfreq shouldn't be faster than initialization, play safe though. */
++	dmc->load = 99;
++	dmc->total = 100;
++}
++
++/**
++ * exynos5_dmc_disable_perf_events() - Disable performance events
++ * @dmc:	device for which the counters are going to be checked
++ *
++ * Function which stops, disables performance event counters and interrupts.
++ */
++static void exynos5_dmc_disable_perf_events(struct exynos5_dmc *dmc)
++{
++	/* Stop all counters */
++	writel(0, dmc->base_drexi0 + DREX_PMNC_PPC);
++	writel(0, dmc->base_drexi1 + DREX_PMNC_PPC);
++
++	/* Disable interrupts for counter 2 */
++	writel(PERF_CNT2, dmc->base_drexi0 + DREX_INTENC_PPC);
++	writel(PERF_CNT2, dmc->base_drexi1 + DREX_INTENC_PPC);
++
++	/* Disable counter 2 and CCNT  */
++	writel(PERF_CNT2 | PERF_CCNT, dmc->base_drexi0 + DREX_CNTENC_PPC);
++	writel(PERF_CNT2 | PERF_CCNT, dmc->base_drexi1 + DREX_CNTENC_PPC);
++
++	/* Clear overflow flag for all counters */
++	writel(PERF_CNT2 | PERF_CCNT, dmc->base_drexi0 + DREX_FLAG_PPC);
++	writel(PERF_CNT2 | PERF_CCNT, dmc->base_drexi1 + DREX_FLAG_PPC);
++}
++
++/**
++ * exynos5_dmc_get_status() - Read current DMC performance statistics.
++ * @dev:	device for which the statistics are requested
++ * @stat:	structure which has statistic fields
++ *
++ * Function reads the DMC performance counters and calculates 'busy_time'
++ * and 'total_time'. To protect from overflow, the values are shifted right
++ * by 10. After read out the counters are setup to count again.
++ */
++static int exynos5_dmc_get_status(struct device *dev,
++				  struct devfreq_dev_status *stat)
++{
++	struct exynos5_dmc *dmc = dev_get_drvdata(dev);
++	unsigned long load, total;
++	int ret;
++
++	if (dmc->in_irq_mode) {
++		stat->current_frequency = dmc->curr_rate;
++		stat->busy_time = dmc->load;
++		stat->total_time = dmc->total;
++	} else {
++		ret = exynos5_counters_get(dmc, &load, &total);
++		if (ret < 0)
++			return -EINVAL;
++
++		/* To protect from overflow, divide by 1024 */
++		stat->busy_time = load >> 10;
++		stat->total_time = total >> 10;
++
++		ret = exynos5_counters_set_event(dmc);
++		if (ret < 0) {
++			dev_err(dev, "could not set event counter\n");
++			return ret;
++		}
++	}
++
++	return 0;
++}
++
++/**
++ * exynos5_dmc_get_cur_freq() - Function returns current DMC frequency
++ * @dev:	device for which the framework checks operating frequency
++ * @freq:	returned frequency value
++ *
++ * It returns the currently used frequency of the DMC. The real operating
++ * frequency might be lower when the clock source value could not be divided
++ * to the requested value.
++ */
++static int exynos5_dmc_get_cur_freq(struct device *dev, unsigned long *freq)
++{
++	struct exynos5_dmc *dmc = dev_get_drvdata(dev);
++
++	mutex_lock(&dmc->lock);
++	*freq = dmc->curr_rate;
++	mutex_unlock(&dmc->lock);
++
++	return 0;
++}
++
++/**
++ * exynos5_dmc_df_profile - Devfreq governor's profile structure
++ *
++ * It provides to the devfreq framework needed functions and polling period.
++ */
++static struct devfreq_dev_profile exynos5_dmc_df_profile = {
++	.target = exynos5_dmc_target,
++	.get_dev_status = exynos5_dmc_get_status,
++	.get_cur_freq = exynos5_dmc_get_cur_freq,
++};
++
++/**
++ * exynos5_dmc_align_initial_frequency() - Align initial frequency value
++ * @dmc:	device for which the frequency is going to be set
++ * @bootloader_init_freq:	initial frequency set by the bootloader in KHz
++ *
++ * The initial bootloader frequency, which is present during boot, might be
++ * different that supported frequency values in the driver. It is possible
++ * due to different PLL settings or used PLL as a source.
++ * This function provides the 'initial_freq' for the devfreq framework
++ * statistics engine which supports only registered values. Thus, some alignment
++ * must be made.
++ */
++static unsigned long
++exynos5_dmc_align_init_freq(struct exynos5_dmc *dmc,
++			    unsigned long bootloader_init_freq)
++{
++	unsigned long aligned_freq;
++	int idx;
++
++	idx = find_target_freq_idx(dmc, bootloader_init_freq);
++	if (idx >= 0)
++		aligned_freq = dmc->opp[idx].freq_hz;
++	else
++		aligned_freq = dmc->opp[dmc->opp_count - 1].freq_hz;
++
++	return aligned_freq;
++}
++
++/**
++ * create_timings_aligned() - Create register values and align with standard
++ * @dmc:	device for which the frequency is going to be set
++ * @idx:	speed bin in the OPP table
++ * @clk_period_ps:	the period of the clock, known as tCK
++ *
++ * The function calculates timings and creates a register value ready for
++ * a frequency transition. The register contains a few timings. They are
++ * shifted by a known offset. The timing value is calculated based on memory
++ * specyfication: minimal time required and minimal cycles required.
++ */
++static int create_timings_aligned(struct exynos5_dmc *dmc, u32 *reg_timing_row,
++				  u32 *reg_timing_data, u32 *reg_timing_power,
++				  u32 clk_period_ps)
++{
++	u32 val;
++	const struct timing_reg *reg;
++
++	if (clk_period_ps == 0)
++		return -EINVAL;
++
++	*reg_timing_row = 0;
++	*reg_timing_data = 0;
++	*reg_timing_power = 0;
++
++	val = dmc->timings->tRFC / clk_period_ps;
++	val += dmc->timings->tRFC % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tRFC);
++	reg = &timing_row[0];
++	*reg_timing_row |= TIMING_VAL2REG(reg, val);
++
++	val = dmc->timings->tRRD / clk_period_ps;
++	val += dmc->timings->tRRD % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tRRD);
++	reg = &timing_row[1];
++	*reg_timing_row |= TIMING_VAL2REG(reg, val);
++
++	val = dmc->timings->tRPab / clk_period_ps;
++	val += dmc->timings->tRPab % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tRPab);
++	reg = &timing_row[2];
++	*reg_timing_row |= TIMING_VAL2REG(reg, val);
++
++	val = dmc->timings->tRCD / clk_period_ps;
++	val += dmc->timings->tRCD % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tRCD);
++	reg = &timing_row[3];
++	*reg_timing_row |= TIMING_VAL2REG(reg, val);
++
++	val = dmc->timings->tRC / clk_period_ps;
++	val += dmc->timings->tRC % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tRC);
++	reg = &timing_row[4];
++	*reg_timing_row |= TIMING_VAL2REG(reg, val);
++
++	val = dmc->timings->tRAS / clk_period_ps;
++	val += dmc->timings->tRAS % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tRAS);
++	reg = &timing_row[5];
++	*reg_timing_row |= TIMING_VAL2REG(reg, val);
++
++	/* data related timings */
++	val = dmc->timings->tWTR / clk_period_ps;
++	val += dmc->timings->tWTR % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tWTR);
++	reg = &timing_data[0];
++	*reg_timing_data |= TIMING_VAL2REG(reg, val);
++
++	val = dmc->timings->tWR / clk_period_ps;
++	val += dmc->timings->tWR % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tWR);
++	reg = &timing_data[1];
++	*reg_timing_data |= TIMING_VAL2REG(reg, val);
++
++	val = dmc->timings->tRTP / clk_period_ps;
++	val += dmc->timings->tRTP % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tRTP);
++	reg = &timing_data[2];
++	*reg_timing_data |= TIMING_VAL2REG(reg, val);
++
++	val = dmc->timings->tW2W_C2C / clk_period_ps;
++	val += dmc->timings->tW2W_C2C % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tW2W_C2C);
++	reg = &timing_data[3];
++	*reg_timing_data |= TIMING_VAL2REG(reg, val);
++
++	val = dmc->timings->tR2R_C2C / clk_period_ps;
++	val += dmc->timings->tR2R_C2C % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tR2R_C2C);
++	reg = &timing_data[4];
++	*reg_timing_data |= TIMING_VAL2REG(reg, val);
++
++	val = dmc->timings->tWL / clk_period_ps;
++	val += dmc->timings->tWL % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tWL);
++	reg = &timing_data[5];
++	*reg_timing_data |= TIMING_VAL2REG(reg, val);
++
++	val = dmc->timings->tDQSCK / clk_period_ps;
++	val += dmc->timings->tDQSCK % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tDQSCK);
++	reg = &timing_data[6];
++	*reg_timing_data |= TIMING_VAL2REG(reg, val);
++
++	val = dmc->timings->tRL / clk_period_ps;
++	val += dmc->timings->tRL % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tRL);
++	reg = &timing_data[7];
++	*reg_timing_data |= TIMING_VAL2REG(reg, val);
++
++	/* power related timings */
++	val = dmc->timings->tFAW / clk_period_ps;
++	val += dmc->timings->tFAW % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tXP);
++	reg = &timing_power[0];
++	*reg_timing_power |= TIMING_VAL2REG(reg, val);
++
++	val = dmc->timings->tXSR / clk_period_ps;
++	val += dmc->timings->tXSR % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tXSR);
++	reg = &timing_power[1];
++	*reg_timing_power |= TIMING_VAL2REG(reg, val);
++
++	val = dmc->timings->tXP / clk_period_ps;
++	val += dmc->timings->tXP % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tXP);
++	reg = &timing_power[2];
++	*reg_timing_power |= TIMING_VAL2REG(reg, val);
++
++	val = dmc->timings->tCKE / clk_period_ps;
++	val += dmc->timings->tCKE % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tCKE);
++	reg = &timing_power[3];
++	*reg_timing_power |= TIMING_VAL2REG(reg, val);
++
++	val = dmc->timings->tMRD / clk_period_ps;
++	val += dmc->timings->tMRD % clk_period_ps ? 1 : 0;
++	val = max(val, dmc->min_tck->tMRD);
++	reg = &timing_power[4];
++	*reg_timing_power |= TIMING_VAL2REG(reg, val);
++
++	return 0;
++}
++
++/**
++ * of_get_dram_timings() - helper function for parsing DT settings for DRAM
++ * @dmc:        device for which the frequency is going to be set
++ *
++ * The function parses DT entries with DRAM information.
++ */
++static int of_get_dram_timings(struct exynos5_dmc *dmc)
++{
++	int ret = 0;
++	int idx;
++	struct device_node *np_ddr;
++	u32 freq_mhz, clk_period_ps;
++
++	np_ddr = of_parse_phandle(dmc->dev->of_node, "device-handle", 0);
++	if (!np_ddr) {
++		dev_warn(dmc->dev, "could not find 'device-handle' in DT\n");
++		return -EINVAL;
++	}
++
++	dmc->timing_row = devm_kmalloc_array(dmc->dev, TIMING_COUNT,
++					     sizeof(u32), GFP_KERNEL);
++	if (!dmc->timing_row)
++		return -ENOMEM;
++
++	dmc->timing_data = devm_kmalloc_array(dmc->dev, TIMING_COUNT,
++					      sizeof(u32), GFP_KERNEL);
++	if (!dmc->timing_data)
++		return -ENOMEM;
++
++	dmc->timing_power = devm_kmalloc_array(dmc->dev, TIMING_COUNT,
++					       sizeof(u32), GFP_KERNEL);
++	if (!dmc->timing_power)
++		return -ENOMEM;
++
++	dmc->timings = of_lpddr3_get_ddr_timings(np_ddr, dmc->dev,
++						 DDR_TYPE_LPDDR3,
++						 &dmc->timings_arr_size);
++	if (!dmc->timings) {
++		of_node_put(np_ddr);
++		dev_warn(dmc->dev, "could not get timings from DT\n");
++		return -EINVAL;
++	}
++
++	dmc->min_tck = of_lpddr3_get_min_tck(np_ddr, dmc->dev);
++	if (!dmc->min_tck) {
++		of_node_put(np_ddr);
++		dev_warn(dmc->dev, "could not get tck from DT\n");
++		return -EINVAL;
++	}
++
++	/* Sorted array of OPPs with frequency ascending */
++	for (idx = 0; idx < dmc->opp_count; idx++) {
++		freq_mhz = dmc->opp[idx].freq_hz / 1000000;
++		clk_period_ps = 1000000 / freq_mhz;
++
++		ret = create_timings_aligned(dmc, &dmc->timing_row[idx],
++					     &dmc->timing_data[idx],
++					     &dmc->timing_power[idx],
++					     clk_period_ps);
++	}
++
++	of_node_put(np_ddr);
++
++	/* Take the highest frequency's timings as 'bypass' */
++	dmc->bypass_timing_row = dmc->timing_row[idx - 1];
++	dmc->bypass_timing_data = dmc->timing_data[idx - 1];
++	dmc->bypass_timing_power = dmc->timing_power[idx - 1];
++
++	return ret;
++}
++
++/**
++ * exynos5_dmc_init_clks() - Initialize clocks needed for DMC operation.
++ * @dmc:	DMC structure containing needed fields
++ *
++ * Get the needed clocks defined in DT device, enable and set the right parents.
++ * Read current frequency and initialize the initial rate for governor.
++ */
++static int exynos5_dmc_init_clks(struct exynos5_dmc *dmc)
++{
++	int ret;
++	unsigned long target_volt = 0;
++	unsigned long target_rate = 0;
++	unsigned int tmp;
++
++	dmc->fout_spll = devm_clk_get(dmc->dev, "fout_spll");
++	if (IS_ERR(dmc->fout_spll))
++		return PTR_ERR(dmc->fout_spll);
++
++	dmc->fout_bpll = devm_clk_get(dmc->dev, "fout_bpll");
++	if (IS_ERR(dmc->fout_bpll))
++		return PTR_ERR(dmc->fout_bpll);
++
++	dmc->mout_mclk_cdrex = devm_clk_get(dmc->dev, "mout_mclk_cdrex");
++	if (IS_ERR(dmc->mout_mclk_cdrex))
++		return PTR_ERR(dmc->mout_mclk_cdrex);
++
++	dmc->mout_bpll = devm_clk_get(dmc->dev, "mout_bpll");
++	if (IS_ERR(dmc->mout_bpll))
++		return PTR_ERR(dmc->mout_bpll);
++
++	dmc->mout_mx_mspll_ccore = devm_clk_get(dmc->dev,
++						"mout_mx_mspll_ccore");
++	if (IS_ERR(dmc->mout_mx_mspll_ccore))
++		return PTR_ERR(dmc->mout_mx_mspll_ccore);
++
++	dmc->mout_spll = devm_clk_get(dmc->dev, "ff_dout_spll2");
++	if (IS_ERR(dmc->mout_spll)) {
++		dmc->mout_spll = devm_clk_get(dmc->dev, "mout_sclk_spll");
++		if (IS_ERR(dmc->mout_spll))
++			return PTR_ERR(dmc->mout_spll);
++	}
++
++	/*
++	 * Convert frequency to KHz values and set it for the governor.
++	 */
++	dmc->curr_rate = clk_get_rate(dmc->mout_mclk_cdrex);
++	dmc->curr_rate = exynos5_dmc_align_init_freq(dmc, dmc->curr_rate);
++	exynos5_dmc_df_profile.initial_freq = dmc->curr_rate;
++
++	ret = exynos5_dmc_get_volt_freq(dmc, &dmc->curr_rate, &target_rate,
++					&target_volt, 0);
++	if (ret)
++		return ret;
++
++	dmc->curr_volt = target_volt;
++
++	clk_set_parent(dmc->mout_mx_mspll_ccore, dmc->mout_spll);
++
++	dmc->bypass_rate = clk_get_rate(dmc->mout_mx_mspll_ccore);
++
++	clk_prepare_enable(dmc->fout_bpll);
++	clk_prepare_enable(dmc->mout_bpll);
++
++	/*
++	 * Some bootloaders do not set clock routes correctly.
++	 * Stop one path in clocks to PHY.
++	 */
++	regmap_read(dmc->clk_regmap, CDREX_LPDDR3PHY_CLKM_SRC, &tmp);
++	tmp &= ~(BIT(1) | BIT(0));
++	regmap_write(dmc->clk_regmap, CDREX_LPDDR3PHY_CLKM_SRC, tmp);
++
++	return 0;
++}
++
++/**
++ * exynos5_performance_counters_init() - Initializes performance DMC's counters
++ * @dmc:	DMC for which it does the setup
++ *
++ * Initialization of performance counters in DMC for estimating usage.
++ * The counter's values are used for calculation of a memory bandwidth and based
++ * on that the governor changes the frequency.
++ * The counters are not used when the governor is GOVERNOR_USERSPACE.
++ */
++static int exynos5_performance_counters_init(struct exynos5_dmc *dmc)
++{
++	int counters_size;
++	int ret, i;
++
++	dmc->num_counters = devfreq_event_get_edev_count(dmc->dev);
++	if (dmc->num_counters < 0) {
++		dev_err(dmc->dev, "could not get devfreq-event counters\n");
++		return dmc->num_counters;
++	}
++
++	counters_size = sizeof(struct devfreq_event_dev) * dmc->num_counters;
++	dmc->counter = devm_kzalloc(dmc->dev, counters_size, GFP_KERNEL);
++	if (!dmc->counter)
++		return -ENOMEM;
++
++	for (i = 0; i < dmc->num_counters; i++) {
++		dmc->counter[i] =
++			devfreq_event_get_edev_by_phandle(dmc->dev, i);
++		if (IS_ERR_OR_NULL(dmc->counter[i]))
++			return -EPROBE_DEFER;
++	}
++
++	ret = exynos5_counters_enable_edev(dmc);
++	if (ret < 0) {
++		dev_err(dmc->dev, "could not enable event counter\n");
++		return ret;
++	}
++
++	ret = exynos5_counters_set_event(dmc);
++	if (ret < 0) {
++		exynos5_counters_disable_edev(dmc);
++		dev_err(dmc->dev, "counld not set event counter\n");
++		return ret;
++	}
++
++	return 0;
++}
++
++/**
++ * exynos5_dmc_set_pause_on_switching() - Controls a pause feature in DMC
++ * @dmc:	device which is used for changing this feature
++ * @set:	a boolean state passing enable/disable request
++ *
++ * There is a need of pausing DREX DMC when divider or MUX in clock tree
++ * changes its configuration. In such situation access to the memory is blocked
++ * in DMC automatically. This feature is used when clock frequency change
++ * request appears and touches clock tree.
++ */
++static inline int exynos5_dmc_set_pause_on_switching(struct exynos5_dmc *dmc)
++{
++	unsigned int val;
++	int ret;
++
++	ret = regmap_read(dmc->clk_regmap, CDREX_PAUSE, &val);
++	if (ret)
++		return ret;
++
++	val |= 1UL;
++	regmap_write(dmc->clk_regmap, CDREX_PAUSE, val);
++
++	return 0;
++}
++
++static irqreturn_t dmc_irq_thread(int irq, void *priv)
++{
++	int res;
++	struct exynos5_dmc *dmc = priv;
++
++	mutex_lock(&dmc->df->lock);
++
++	exynos5_dmc_perf_events_check(dmc);
++
++	res = update_devfreq(dmc->df);
++	if (res)
++		dev_warn(dmc->dev, "devfreq failed with %d\n", res);
++
++	mutex_unlock(&dmc->df->lock);
++
++	return IRQ_HANDLED;
++}
++
++/**
++ * exynos5_dmc_probe() - Probe function for the DMC driver
++ * @pdev:	platform device for which the driver is going to be initialized
++ *
++ * Initialize basic components: clocks, regulators, performance counters, etc.
++ * Read out product version and based on the information setup
++ * internal structures for the controller (frequency and voltage) and for DRAM
++ * memory parameters: timings for each operating frequency.
++ * Register new devfreq device for controlling DVFS of the DMC.
++ */
++static int exynos5_dmc_probe(struct platform_device *pdev)
++{
++	int ret = 0;
++	struct device *dev = &pdev->dev;
++	struct device_node *np = dev->of_node;
++	struct exynos5_dmc *dmc;
++	struct resource *res;
++	int irq[2];
++
++	dmc = devm_kzalloc(dev, sizeof(*dmc), GFP_KERNEL);
++	if (!dmc)
++		return -ENOMEM;
++
++	mutex_init(&dmc->lock);
++
++	dmc->dev = dev;
++	platform_set_drvdata(pdev, dmc);
++
++	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++	dmc->base_drexi0 = devm_ioremap_resource(dev, res);
++	if (IS_ERR(dmc->base_drexi0))
++		return PTR_ERR(dmc->base_drexi0);
++
++	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
++	dmc->base_drexi1 = devm_ioremap_resource(dev, res);
++	if (IS_ERR(dmc->base_drexi1))
++		return PTR_ERR(dmc->base_drexi1);
++
++	dmc->clk_regmap = syscon_regmap_lookup_by_phandle(np,
++				"samsung,syscon-clk");
++	if (IS_ERR(dmc->clk_regmap))
++		return PTR_ERR(dmc->clk_regmap);
++
++	ret = exynos5_init_freq_table(dmc, &exynos5_dmc_df_profile);
++	if (ret) {
++		dev_warn(dev, "couldn't initialize frequency settings\n");
++		return ret;
++	}
++
++	dmc->vdd_mif = devm_regulator_get(dev, "vdd");
++	if (IS_ERR(dmc->vdd_mif)) {
++		ret = PTR_ERR(dmc->vdd_mif);
++		return ret;
++	}
++
++	ret = exynos5_dmc_init_clks(dmc);
++	if (ret)
++		return ret;
++
++	ret = of_get_dram_timings(dmc);
++	if (ret) {
++		dev_warn(dev, "couldn't initialize timings settings\n");
++		goto remove_clocks;
++	}
++
++	ret = exynos5_dmc_set_pause_on_switching(dmc);
++	if (ret) {
++		dev_warn(dev, "couldn't get access to PAUSE register\n");
++		goto remove_clocks;
++	}
++
++	/* There is two modes in which the driver works: polling or IRQ */
++	irq[0] = platform_get_irq_byname(pdev, "drex_0");
++	irq[1] = platform_get_irq_byname(pdev, "drex_1");
++	if (irq[0] > 0 && irq[1] > 0) {
++		ret = devm_request_threaded_irq(dev, irq[0], NULL,
++						dmc_irq_thread, IRQF_ONESHOT,
++						dev_name(dev), dmc);
++		if (ret) {
++			dev_err(dev, "couldn't grab IRQ\n");
++			goto remove_clocks;
++		}
++
++		ret = devm_request_threaded_irq(dev, irq[1], NULL,
++						dmc_irq_thread, IRQF_ONESHOT,
++						dev_name(dev), dmc);
++		if (ret) {
++			dev_err(dev, "couldn't grab IRQ\n");
++			goto remove_clocks;
++		}
++
++		/*
++		 * Setup default thresholds for the devfreq governor.
++		 * The values are chosen based on experiments.
++		 */
++		dmc->gov_data.upthreshold = 55;
++		dmc->gov_data.downdifferential = 5;
++
++		exynos5_dmc_enable_perf_events(dmc);
++
++		dmc->in_irq_mode = 1;
++	} else {
++		ret = exynos5_performance_counters_init(dmc);
++		if (ret) {
++			dev_warn(dev, "couldn't probe performance counters\n");
++			goto remove_clocks;
++		}
++
++		/*
++		 * Setup default thresholds for the devfreq governor.
++		 * The values are chosen based on experiments.
++		 */
++		dmc->gov_data.upthreshold = 30;
++		dmc->gov_data.downdifferential = 5;
++
++		exynos5_dmc_df_profile.polling_ms = 500;
++	}
++
++
++	dmc->df = devm_devfreq_add_device(dev, &exynos5_dmc_df_profile,
++					  DEVFREQ_GOV_SIMPLE_ONDEMAND,
++					  &dmc->gov_data);
++
++	if (IS_ERR(dmc->df)) {
++		ret = PTR_ERR(dmc->df);
++		goto err_devfreq_add;
++	}
++
++	if (dmc->in_irq_mode)
++		exynos5_dmc_start_perf_events(dmc, PERF_COUNTER_START_VALUE);
++
++	dev_info(dev, "DMC initialized\n");
++
++	return 0;
++
++err_devfreq_add:
++	if (dmc->in_irq_mode)
++		exynos5_dmc_disable_perf_events(dmc);
++	else
++		exynos5_counters_disable_edev(dmc);
++remove_clocks:
++	clk_disable_unprepare(dmc->mout_bpll);
++	clk_disable_unprepare(dmc->fout_bpll);
++
++	return ret;
++}
++
++/**
++ * exynos5_dmc_remove() - Remove function for the platform device
++ * @pdev:	platform device which is going to be removed
++ *
++ * The function relies on 'devm' framework function which automatically
++ * clean the device's resources. It just calls explicitly disable function for
++ * the performance counters.
++ */
++static int exynos5_dmc_remove(struct platform_device *pdev)
++{
++	struct exynos5_dmc *dmc = dev_get_drvdata(&pdev->dev);
++
++	if (dmc->in_irq_mode)
++		exynos5_dmc_disable_perf_events(dmc);
++	else
++		exynos5_counters_disable_edev(dmc);
++
++	clk_disable_unprepare(dmc->mout_bpll);
++	clk_disable_unprepare(dmc->fout_bpll);
++
++	dev_pm_opp_remove_table(dmc->dev);
++
++	return 0;
++}
++
++static const struct of_device_id exynos5_dmc_of_match[] = {
++	{ .compatible = "samsung,exynos5422-dmc", },
++	{ },
++};
++MODULE_DEVICE_TABLE(of, exynos5_dmc_of_match);
++
++static struct platform_driver exynos5_dmc_platdrv = {
++	.probe	= exynos5_dmc_probe,
++	.remove = exynos5_dmc_remove,
++	.driver = {
++		.name	= "exynos5-dmc",
++		.of_match_table = exynos5_dmc_of_match,
++	},
++};
++module_platform_driver(exynos5_dmc_platdrv);
++MODULE_DESCRIPTION("Driver for Exynos5422 Dynamic Memory Controller dynamic frequency and voltage change");
++MODULE_LICENSE("GPL v2");
++MODULE_AUTHOR("Lukasz Luba");
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/memory/samsung/Kconfig ./drivers/memory/samsung/Kconfig
+--- ../ubuntu-eoan.orig/drivers/memory/samsung/Kconfig	2019-10-30 11:17:19.000000000 +1100
++++ ./drivers/memory/samsung/Kconfig	2019-11-13 18:20:18.724214055 +1100
+@@ -7,6 +7,19 @@
+ 
+ if SAMSUNG_MC
+ 
++config EXYNOS5422_DMC
++	tristate "EXYNOS5422 Dynamic Memory Controller driver"
++	depends on ARCH_EXYNOS || (COMPILE_TEST && HAS_IOMEM)
++	select DDR
++	depends on DEVFREQ_GOV_SIMPLE_ONDEMAND
++	depends on (PM_DEVFREQ && PM_DEVFREQ_EVENT)
++	help
++	  This adds driver for Exynos5422 DMC (Dynamic Memory Controller).
++	  The driver provides support for Dynamic Voltage and Frequency Scaling in
++	  DMC and DRAM. It also supports changing timings of DRAM running with
++	  different frequency. The timings are calculated based on DT memory
++	  information.
++
+ config EXYNOS_SROM
+ 	bool "Exynos SROM controller driver" if COMPILE_TEST
+ 	depends on (ARM && ARCH_EXYNOS) || (COMPILE_TEST && HAS_IOMEM)
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/memory/samsung/Makefile ./drivers/memory/samsung/Makefile
+--- ../ubuntu-eoan.orig/drivers/memory/samsung/Makefile	2019-10-30 11:17:19.000000000 +1100
++++ ./drivers/memory/samsung/Makefile	2019-11-13 18:20:18.724214055 +1100
+@@ -1,2 +1,3 @@
+ # SPDX-License-Identifier: GPL-2.0
++obj-$(CONFIG_EXYNOS5422_DMC)	+= exynos5422-dmc.o
+ obj-$(CONFIG_EXYNOS_SROM)	+= exynos-srom.o
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/opp/core.c ./drivers/opp/core.c
+--- ../ubuntu-eoan.orig/drivers/opp/core.c	2019-10-30 11:17:20.000000000 +1100
++++ ./drivers/opp/core.c	2019-11-13 18:20:18.724214055 +1100
+@@ -2054,6 +2054,75 @@
+ }
+ 
+ /**
++ * dev_pm_opp_adjust_voltage() - helper to change the voltage of an OPP
++ * @dev:		device for which we do this operation
++ * @freq:		OPP frequency to adjust voltage of
++ * @u_volt:		new OPP target voltage
++ * @u_volt_min:		new OPP min voltage
++ * @u_volt_max:		new OPP max voltage
++ *
++ * Return: -EINVAL for bad pointers, -ENOMEM if no memory available for the
++ * copy operation, returns 0 if no modifcation was done OR modification was
++ * successful.
++ */
++int dev_pm_opp_adjust_voltage(struct device *dev, unsigned long freq,
++			      unsigned long u_volt, unsigned long u_volt_min,
++			      unsigned long u_volt_max)
++
++{
++	struct opp_table *opp_table;
++	struct dev_pm_opp *tmp_opp, *opp = ERR_PTR(-ENODEV);
++	int r = 0;
++
++	/* Find the opp_table */
++	opp_table = _find_opp_table(dev);
++	if (IS_ERR(opp_table)) {
++		r = PTR_ERR(opp_table);
++		dev_warn(dev, "%s: Device OPP not found (%d)\n", __func__, r);
++		return r;
++	}
++
++	mutex_lock(&opp_table->lock);
++
++	/* Do we have the frequency? */
++	list_for_each_entry(tmp_opp, &opp_table->opp_list, node) {
++		if (tmp_opp->rate == freq) {
++			opp = tmp_opp;
++			break;
++		}
++	}
++
++	if (IS_ERR(opp)) {
++		r = PTR_ERR(opp);
++		goto adjust_unlock;
++	}
++
++	/* Is update really needed? */
++	if (opp->supplies->u_volt == u_volt)
++		goto adjust_unlock;
++
++	opp->supplies->u_volt = u_volt;
++	opp->supplies->u_volt_min = u_volt_min;
++	opp->supplies->u_volt_max = u_volt_max;
++
++	dev_pm_opp_get(opp);
++	mutex_unlock(&opp_table->lock);
++
++	/* Notify the voltage change of the OPP */
++	blocking_notifier_call_chain(&opp_table->head, OPP_EVENT_ADJUST_VOLTAGE,
++				     opp);
++
++	dev_pm_opp_put(opp);
++	goto adjust_put_table;
++
++adjust_unlock:
++	mutex_unlock(&opp_table->lock);
++adjust_put_table:
++	dev_pm_opp_put_opp_table(opp_table);
++	return r;
++}
++
++/**
+  * dev_pm_opp_enable() - Enable a specific OPP
+  * @dev:	device for which we do this operation
+  * @freq:	OPP frequency to enable
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/opp/core.c.orig ./drivers/opp/core.c.orig
+--- ../ubuntu-eoan.orig/drivers/opp/core.c.orig	1970-01-01 10:00:00.000000000 +1000
++++ ./drivers/opp/core.c.orig	2019-10-30 11:17:20.000000000 +1100
+@@ -0,0 +1,2181 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Generic OPP Interface
++ *
++ * Copyright (C) 2009-2010 Texas Instruments Incorporated.
++ *	Nishanth Menon
++ *	Romit Dasgupta
++ *	Kevin Hilman
++ */
++
++#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
++
++#include <linux/clk.h>
++#include <linux/errno.h>
++#include <linux/err.h>
++#include <linux/slab.h>
++#include <linux/device.h>
++#include <linux/export.h>
++#include <linux/pm_domain.h>
++#include <linux/regulator/consumer.h>
++
++#include "opp.h"
++
++/*
++ * The root of the list of all opp-tables. All opp_table structures branch off
++ * from here, with each opp_table containing the list of opps it supports in
++ * various states of availability.
++ */
++LIST_HEAD(opp_tables);
++/* Lock to allow exclusive modification to the device and opp lists */
++DEFINE_MUTEX(opp_table_lock);
++
++static struct opp_device *_find_opp_dev(const struct device *dev,
++					struct opp_table *opp_table)
++{
++	struct opp_device *opp_dev;
++
++	list_for_each_entry(opp_dev, &opp_table->dev_list, node)
++		if (opp_dev->dev == dev)
++			return opp_dev;
++
++	return NULL;
++}
++
++static struct opp_table *_find_opp_table_unlocked(struct device *dev)
++{
++	struct opp_table *opp_table;
++	bool found;
++
++	list_for_each_entry(opp_table, &opp_tables, node) {
++		mutex_lock(&opp_table->lock);
++		found = !!_find_opp_dev(dev, opp_table);
++		mutex_unlock(&opp_table->lock);
++
++		if (found) {
++			_get_opp_table_kref(opp_table);
++
++			return opp_table;
++		}
++	}
++
++	return ERR_PTR(-ENODEV);
++}
++
++/**
++ * _find_opp_table() - find opp_table struct using device pointer
++ * @dev:	device pointer used to lookup OPP table
++ *
++ * Search OPP table for one containing matching device.
++ *
++ * Return: pointer to 'struct opp_table' if found, otherwise -ENODEV or
++ * -EINVAL based on type of error.
++ *
++ * The callers must call dev_pm_opp_put_opp_table() after the table is used.
++ */
++struct opp_table *_find_opp_table(struct device *dev)
++{
++	struct opp_table *opp_table;
++
++	if (IS_ERR_OR_NULL(dev)) {
++		pr_err("%s: Invalid parameters\n", __func__);
++		return ERR_PTR(-EINVAL);
++	}
++
++	mutex_lock(&opp_table_lock);
++	opp_table = _find_opp_table_unlocked(dev);
++	mutex_unlock(&opp_table_lock);
++
++	return opp_table;
++}
++
++/**
++ * dev_pm_opp_get_voltage() - Gets the voltage corresponding to an opp
++ * @opp:	opp for which voltage has to be returned for
++ *
++ * Return: voltage in micro volt corresponding to the opp, else
++ * return 0
++ *
++ * This is useful only for devices with single power supply.
++ */
++unsigned long dev_pm_opp_get_voltage(struct dev_pm_opp *opp)
++{
++	if (IS_ERR_OR_NULL(opp)) {
++		pr_err("%s: Invalid parameters\n", __func__);
++		return 0;
++	}
++
++	return opp->supplies[0].u_volt;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_get_voltage);
++
++/**
++ * dev_pm_opp_get_freq() - Gets the frequency corresponding to an available opp
++ * @opp:	opp for which frequency has to be returned for
++ *
++ * Return: frequency in hertz corresponding to the opp, else
++ * return 0
++ */
++unsigned long dev_pm_opp_get_freq(struct dev_pm_opp *opp)
++{
++	if (IS_ERR_OR_NULL(opp) || !opp->available) {
++		pr_err("%s: Invalid parameters\n", __func__);
++		return 0;
++	}
++
++	return opp->rate;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_get_freq);
++
++/**
++ * dev_pm_opp_get_level() - Gets the level corresponding to an available opp
++ * @opp:	opp for which level value has to be returned for
++ *
++ * Return: level read from device tree corresponding to the opp, else
++ * return 0.
++ */
++unsigned int dev_pm_opp_get_level(struct dev_pm_opp *opp)
++{
++	if (IS_ERR_OR_NULL(opp) || !opp->available) {
++		pr_err("%s: Invalid parameters\n", __func__);
++		return 0;
++	}
++
++	return opp->level;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_get_level);
++
++/**
++ * dev_pm_opp_is_turbo() - Returns if opp is turbo OPP or not
++ * @opp: opp for which turbo mode is being verified
++ *
++ * Turbo OPPs are not for normal use, and can be enabled (under certain
++ * conditions) for short duration of times to finish high throughput work
++ * quickly. Running on them for longer times may overheat the chip.
++ *
++ * Return: true if opp is turbo opp, else false.
++ */
++bool dev_pm_opp_is_turbo(struct dev_pm_opp *opp)
++{
++	if (IS_ERR_OR_NULL(opp) || !opp->available) {
++		pr_err("%s: Invalid parameters\n", __func__);
++		return false;
++	}
++
++	return opp->turbo;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_is_turbo);
++
++/**
++ * dev_pm_opp_get_max_clock_latency() - Get max clock latency in nanoseconds
++ * @dev:	device for which we do this operation
++ *
++ * Return: This function returns the max clock latency in nanoseconds.
++ */
++unsigned long dev_pm_opp_get_max_clock_latency(struct device *dev)
++{
++	struct opp_table *opp_table;
++	unsigned long clock_latency_ns;
++
++	opp_table = _find_opp_table(dev);
++	if (IS_ERR(opp_table))
++		return 0;
++
++	clock_latency_ns = opp_table->clock_latency_ns_max;
++
++	dev_pm_opp_put_opp_table(opp_table);
++
++	return clock_latency_ns;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_get_max_clock_latency);
++
++/**
++ * dev_pm_opp_get_max_volt_latency() - Get max voltage latency in nanoseconds
++ * @dev: device for which we do this operation
++ *
++ * Return: This function returns the max voltage latency in nanoseconds.
++ */
++unsigned long dev_pm_opp_get_max_volt_latency(struct device *dev)
++{
++	struct opp_table *opp_table;
++	struct dev_pm_opp *opp;
++	struct regulator *reg;
++	unsigned long latency_ns = 0;
++	int ret, i, count;
++	struct {
++		unsigned long min;
++		unsigned long max;
++	} *uV;
++
++	opp_table = _find_opp_table(dev);
++	if (IS_ERR(opp_table))
++		return 0;
++
++	/* Regulator may not be required for the device */
++	if (!opp_table->regulators)
++		goto put_opp_table;
++
++	count = opp_table->regulator_count;
++
++	uV = kmalloc_array(count, sizeof(*uV), GFP_KERNEL);
++	if (!uV)
++		goto put_opp_table;
++
++	mutex_lock(&opp_table->lock);
++
++	for (i = 0; i < count; i++) {
++		uV[i].min = ~0;
++		uV[i].max = 0;
++
++		list_for_each_entry(opp, &opp_table->opp_list, node) {
++			if (!opp->available)
++				continue;
++
++			if (opp->supplies[i].u_volt_min < uV[i].min)
++				uV[i].min = opp->supplies[i].u_volt_min;
++			if (opp->supplies[i].u_volt_max > uV[i].max)
++				uV[i].max = opp->supplies[i].u_volt_max;
++		}
++	}
++
++	mutex_unlock(&opp_table->lock);
++
++	/*
++	 * The caller needs to ensure that opp_table (and hence the regulator)
++	 * isn't freed, while we are executing this routine.
++	 */
++	for (i = 0; i < count; i++) {
++		reg = opp_table->regulators[i];
++		ret = regulator_set_voltage_time(reg, uV[i].min, uV[i].max);
++		if (ret > 0)
++			latency_ns += ret * 1000;
++	}
++
++	kfree(uV);
++put_opp_table:
++	dev_pm_opp_put_opp_table(opp_table);
++
++	return latency_ns;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_get_max_volt_latency);
++
++/**
++ * dev_pm_opp_get_max_transition_latency() - Get max transition latency in
++ *					     nanoseconds
++ * @dev: device for which we do this operation
++ *
++ * Return: This function returns the max transition latency, in nanoseconds, to
++ * switch from one OPP to other.
++ */
++unsigned long dev_pm_opp_get_max_transition_latency(struct device *dev)
++{
++	return dev_pm_opp_get_max_volt_latency(dev) +
++		dev_pm_opp_get_max_clock_latency(dev);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_get_max_transition_latency);
++
++/**
++ * dev_pm_opp_get_suspend_opp_freq() - Get frequency of suspend opp in Hz
++ * @dev:	device for which we do this operation
++ *
++ * Return: This function returns the frequency of the OPP marked as suspend_opp
++ * if one is available, else returns 0;
++ */
++unsigned long dev_pm_opp_get_suspend_opp_freq(struct device *dev)
++{
++	struct opp_table *opp_table;
++	unsigned long freq = 0;
++
++	opp_table = _find_opp_table(dev);
++	if (IS_ERR(opp_table))
++		return 0;
++
++	if (opp_table->suspend_opp && opp_table->suspend_opp->available)
++		freq = dev_pm_opp_get_freq(opp_table->suspend_opp);
++
++	dev_pm_opp_put_opp_table(opp_table);
++
++	return freq;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_get_suspend_opp_freq);
++
++int _get_opp_count(struct opp_table *opp_table)
++{
++	struct dev_pm_opp *opp;
++	int count = 0;
++
++	mutex_lock(&opp_table->lock);
++
++	list_for_each_entry(opp, &opp_table->opp_list, node) {
++		if (opp->available)
++			count++;
++	}
++
++	mutex_unlock(&opp_table->lock);
++
++	return count;
++}
++
++/**
++ * dev_pm_opp_get_opp_count() - Get number of opps available in the opp table
++ * @dev:	device for which we do this operation
++ *
++ * Return: This function returns the number of available opps if there are any,
++ * else returns 0 if none or the corresponding error value.
++ */
++int dev_pm_opp_get_opp_count(struct device *dev)
++{
++	struct opp_table *opp_table;
++	int count;
++
++	opp_table = _find_opp_table(dev);
++	if (IS_ERR(opp_table)) {
++		count = PTR_ERR(opp_table);
++		dev_dbg(dev, "%s: OPP table not found (%d)\n",
++			__func__, count);
++		return count;
++	}
++
++	count = _get_opp_count(opp_table);
++	dev_pm_opp_put_opp_table(opp_table);
++
++	return count;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_get_opp_count);
++
++/**
++ * dev_pm_opp_find_freq_exact() - search for an exact frequency
++ * @dev:		device for which we do this operation
++ * @freq:		frequency to search for
++ * @available:		true/false - match for available opp
++ *
++ * Return: Searches for exact match in the opp table and returns pointer to the
++ * matching opp if found, else returns ERR_PTR in case of error and should
++ * be handled using IS_ERR. Error return values can be:
++ * EINVAL:	for bad pointer
++ * ERANGE:	no match found for search
++ * ENODEV:	if device not found in list of registered devices
++ *
++ * Note: available is a modifier for the search. if available=true, then the
++ * match is for exact matching frequency and is available in the stored OPP
++ * table. if false, the match is for exact frequency which is not available.
++ *
++ * This provides a mechanism to enable an opp which is not available currently
++ * or the opposite as well.
++ *
++ * The callers are required to call dev_pm_opp_put() for the returned OPP after
++ * use.
++ */
++struct dev_pm_opp *dev_pm_opp_find_freq_exact(struct device *dev,
++					      unsigned long freq,
++					      bool available)
++{
++	struct opp_table *opp_table;
++	struct dev_pm_opp *temp_opp, *opp = ERR_PTR(-ERANGE);
++
++	opp_table = _find_opp_table(dev);
++	if (IS_ERR(opp_table)) {
++		int r = PTR_ERR(opp_table);
++
++		dev_err(dev, "%s: OPP table not found (%d)\n", __func__, r);
++		return ERR_PTR(r);
++	}
++
++	mutex_lock(&opp_table->lock);
++
++	list_for_each_entry(temp_opp, &opp_table->opp_list, node) {
++		if (temp_opp->available == available &&
++				temp_opp->rate == freq) {
++			opp = temp_opp;
++
++			/* Increment the reference count of OPP */
++			dev_pm_opp_get(opp);
++			break;
++		}
++	}
++
++	mutex_unlock(&opp_table->lock);
++	dev_pm_opp_put_opp_table(opp_table);
++
++	return opp;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_find_freq_exact);
++
++static noinline struct dev_pm_opp *_find_freq_ceil(struct opp_table *opp_table,
++						   unsigned long *freq)
++{
++	struct dev_pm_opp *temp_opp, *opp = ERR_PTR(-ERANGE);
++
++	mutex_lock(&opp_table->lock);
++
++	list_for_each_entry(temp_opp, &opp_table->opp_list, node) {
++		if (temp_opp->available && temp_opp->rate >= *freq) {
++			opp = temp_opp;
++			*freq = opp->rate;
++
++			/* Increment the reference count of OPP */
++			dev_pm_opp_get(opp);
++			break;
++		}
++	}
++
++	mutex_unlock(&opp_table->lock);
++
++	return opp;
++}
++
++/**
++ * dev_pm_opp_find_freq_ceil() - Search for an rounded ceil freq
++ * @dev:	device for which we do this operation
++ * @freq:	Start frequency
++ *
++ * Search for the matching ceil *available* OPP from a starting freq
++ * for a device.
++ *
++ * Return: matching *opp and refreshes *freq accordingly, else returns
++ * ERR_PTR in case of error and should be handled using IS_ERR. Error return
++ * values can be:
++ * EINVAL:	for bad pointer
++ * ERANGE:	no match found for search
++ * ENODEV:	if device not found in list of registered devices
++ *
++ * The callers are required to call dev_pm_opp_put() for the returned OPP after
++ * use.
++ */
++struct dev_pm_opp *dev_pm_opp_find_freq_ceil(struct device *dev,
++					     unsigned long *freq)
++{
++	struct opp_table *opp_table;
++	struct dev_pm_opp *opp;
++
++	if (!dev || !freq) {
++		dev_err(dev, "%s: Invalid argument freq=%p\n", __func__, freq);
++		return ERR_PTR(-EINVAL);
++	}
++
++	opp_table = _find_opp_table(dev);
++	if (IS_ERR(opp_table))
++		return ERR_CAST(opp_table);
++
++	opp = _find_freq_ceil(opp_table, freq);
++
++	dev_pm_opp_put_opp_table(opp_table);
++
++	return opp;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_find_freq_ceil);
++
++/**
++ * dev_pm_opp_find_freq_floor() - Search for a rounded floor freq
++ * @dev:	device for which we do this operation
++ * @freq:	Start frequency
++ *
++ * Search for the matching floor *available* OPP from a starting freq
++ * for a device.
++ *
++ * Return: matching *opp and refreshes *freq accordingly, else returns
++ * ERR_PTR in case of error and should be handled using IS_ERR. Error return
++ * values can be:
++ * EINVAL:	for bad pointer
++ * ERANGE:	no match found for search
++ * ENODEV:	if device not found in list of registered devices
++ *
++ * The callers are required to call dev_pm_opp_put() for the returned OPP after
++ * use.
++ */
++struct dev_pm_opp *dev_pm_opp_find_freq_floor(struct device *dev,
++					      unsigned long *freq)
++{
++	struct opp_table *opp_table;
++	struct dev_pm_opp *temp_opp, *opp = ERR_PTR(-ERANGE);
++
++	if (!dev || !freq) {
++		dev_err(dev, "%s: Invalid argument freq=%p\n", __func__, freq);
++		return ERR_PTR(-EINVAL);
++	}
++
++	opp_table = _find_opp_table(dev);
++	if (IS_ERR(opp_table))
++		return ERR_CAST(opp_table);
++
++	mutex_lock(&opp_table->lock);
++
++	list_for_each_entry(temp_opp, &opp_table->opp_list, node) {
++		if (temp_opp->available) {
++			/* go to the next node, before choosing prev */
++			if (temp_opp->rate > *freq)
++				break;
++			else
++				opp = temp_opp;
++		}
++	}
++
++	/* Increment the reference count of OPP */
++	if (!IS_ERR(opp))
++		dev_pm_opp_get(opp);
++	mutex_unlock(&opp_table->lock);
++	dev_pm_opp_put_opp_table(opp_table);
++
++	if (!IS_ERR(opp))
++		*freq = opp->rate;
++
++	return opp;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_find_freq_floor);
++
++/**
++ * dev_pm_opp_find_freq_ceil_by_volt() - Find OPP with highest frequency for
++ *					 target voltage.
++ * @dev:	Device for which we do this operation.
++ * @u_volt:	Target voltage.
++ *
++ * Search for OPP with highest (ceil) frequency and has voltage <= u_volt.
++ *
++ * Return: matching *opp, else returns ERR_PTR in case of error which should be
++ * handled using IS_ERR.
++ *
++ * Error return values can be:
++ * EINVAL:	bad parameters
++ *
++ * The callers are required to call dev_pm_opp_put() for the returned OPP after
++ * use.
++ */
++struct dev_pm_opp *dev_pm_opp_find_freq_ceil_by_volt(struct device *dev,
++						     unsigned long u_volt)
++{
++	struct opp_table *opp_table;
++	struct dev_pm_opp *temp_opp, *opp = ERR_PTR(-ERANGE);
++
++	if (!dev || !u_volt) {
++		dev_err(dev, "%s: Invalid argument volt=%lu\n", __func__,
++			u_volt);
++		return ERR_PTR(-EINVAL);
++	}
++
++	opp_table = _find_opp_table(dev);
++	if (IS_ERR(opp_table))
++		return ERR_CAST(opp_table);
++
++	mutex_lock(&opp_table->lock);
++
++	list_for_each_entry(temp_opp, &opp_table->opp_list, node) {
++		if (temp_opp->available) {
++			if (temp_opp->supplies[0].u_volt > u_volt)
++				break;
++			opp = temp_opp;
++		}
++	}
++
++	/* Increment the reference count of OPP */
++	if (!IS_ERR(opp))
++		dev_pm_opp_get(opp);
++
++	mutex_unlock(&opp_table->lock);
++	dev_pm_opp_put_opp_table(opp_table);
++
++	return opp;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_find_freq_ceil_by_volt);
++
++static int _set_opp_voltage(struct device *dev, struct regulator *reg,
++			    struct dev_pm_opp_supply *supply)
++{
++	int ret;
++
++	/* Regulator not available for device */
++	if (IS_ERR(reg)) {
++		dev_dbg(dev, "%s: regulator not available: %ld\n", __func__,
++			PTR_ERR(reg));
++		return 0;
++	}
++
++	dev_dbg(dev, "%s: voltages (mV): %lu %lu %lu\n", __func__,
++		supply->u_volt_min, supply->u_volt, supply->u_volt_max);
++
++	ret = regulator_set_voltage_triplet(reg, supply->u_volt_min,
++					    supply->u_volt, supply->u_volt_max);
++	if (ret)
++		dev_err(dev, "%s: failed to set voltage (%lu %lu %lu mV): %d\n",
++			__func__, supply->u_volt_min, supply->u_volt,
++			supply->u_volt_max, ret);
++
++	return ret;
++}
++
++static inline int _generic_set_opp_clk_only(struct device *dev, struct clk *clk,
++					    unsigned long freq)
++{
++	int ret;
++
++	ret = clk_set_rate(clk, freq);
++	if (ret) {
++		dev_err(dev, "%s: failed to set clock rate: %d\n", __func__,
++			ret);
++	}
++
++	return ret;
++}
++
++static int _generic_set_opp_regulator(const struct opp_table *opp_table,
++				      struct device *dev,
++				      unsigned long old_freq,
++				      unsigned long freq,
++				      struct dev_pm_opp_supply *old_supply,
++				      struct dev_pm_opp_supply *new_supply)
++{
++	struct regulator *reg = opp_table->regulators[0];
++	int ret;
++
++	/* This function only supports single regulator per device */
++	if (WARN_ON(opp_table->regulator_count > 1)) {
++		dev_err(dev, "multiple regulators are not supported\n");
++		return -EINVAL;
++	}
++
++	/* Scaling up? Scale voltage before frequency */
++	if (freq >= old_freq) {
++		ret = _set_opp_voltage(dev, reg, new_supply);
++		if (ret)
++			goto restore_voltage;
++	}
++
++	/* Change frequency */
++	ret = _generic_set_opp_clk_only(dev, opp_table->clk, freq);
++	if (ret)
++		goto restore_voltage;
++
++	/* Scaling down? Scale voltage after frequency */
++	if (freq < old_freq) {
++		ret = _set_opp_voltage(dev, reg, new_supply);
++		if (ret)
++			goto restore_freq;
++	}
++
++	return 0;
++
++restore_freq:
++	if (_generic_set_opp_clk_only(dev, opp_table->clk, old_freq))
++		dev_err(dev, "%s: failed to restore old-freq (%lu Hz)\n",
++			__func__, old_freq);
++restore_voltage:
++	/* This shouldn't harm even if the voltages weren't updated earlier */
++	if (old_supply)
++		_set_opp_voltage(dev, reg, old_supply);
++
++	return ret;
++}
++
++static int _set_opp_custom(const struct opp_table *opp_table,
++			   struct device *dev, unsigned long old_freq,
++			   unsigned long freq,
++			   struct dev_pm_opp_supply *old_supply,
++			   struct dev_pm_opp_supply *new_supply)
++{
++	struct dev_pm_set_opp_data *data;
++	int size;
++
++	data = opp_table->set_opp_data;
++	data->regulators = opp_table->regulators;
++	data->regulator_count = opp_table->regulator_count;
++	data->clk = opp_table->clk;
++	data->dev = dev;
++
++	data->old_opp.rate = old_freq;
++	size = sizeof(*old_supply) * opp_table->regulator_count;
++	if (!old_supply)
++		memset(data->old_opp.supplies, 0, size);
++	else
++		memcpy(data->old_opp.supplies, old_supply, size);
++
++	data->new_opp.rate = freq;
++	memcpy(data->new_opp.supplies, new_supply, size);
++
++	return opp_table->set_opp(data);
++}
++
++/* This is only called for PM domain for now */
++static int _set_required_opps(struct device *dev,
++			      struct opp_table *opp_table,
++			      struct dev_pm_opp *opp)
++{
++	struct opp_table **required_opp_tables = opp_table->required_opp_tables;
++	struct device **genpd_virt_devs = opp_table->genpd_virt_devs;
++	unsigned int pstate;
++	int i, ret = 0;
++
++	if (!required_opp_tables)
++		return 0;
++
++	/* Single genpd case */
++	if (!genpd_virt_devs) {
++		pstate = likely(opp) ? opp->required_opps[0]->pstate : 0;
++		ret = dev_pm_genpd_set_performance_state(dev, pstate);
++		if (ret) {
++			dev_err(dev, "Failed to set performance state of %s: %d (%d)\n",
++				dev_name(dev), pstate, ret);
++		}
++		return ret;
++	}
++
++	/* Multiple genpd case */
++
++	/*
++	 * Acquire genpd_virt_dev_lock to make sure we don't use a genpd_dev
++	 * after it is freed from another thread.
++	 */
++	mutex_lock(&opp_table->genpd_virt_dev_lock);
++
++	for (i = 0; i < opp_table->required_opp_count; i++) {
++		pstate = likely(opp) ? opp->required_opps[i]->pstate : 0;
++
++		if (!genpd_virt_devs[i])
++			continue;
++
++		ret = dev_pm_genpd_set_performance_state(genpd_virt_devs[i], pstate);
++		if (ret) {
++			dev_err(dev, "Failed to set performance rate of %s: %d (%d)\n",
++				dev_name(genpd_virt_devs[i]), pstate, ret);
++			break;
++		}
++	}
++	mutex_unlock(&opp_table->genpd_virt_dev_lock);
++
++	return ret;
++}
++
++/**
++ * dev_pm_opp_set_rate() - Configure new OPP based on frequency
++ * @dev:	 device for which we do this operation
++ * @target_freq: frequency to achieve
++ *
++ * This configures the power-supplies to the levels specified by the OPP
++ * corresponding to the target_freq, and programs the clock to a value <=
++ * target_freq, as rounded by clk_round_rate(). Device wanting to run at fmax
++ * provided by the opp, should have already rounded to the target OPP's
++ * frequency.
++ */
++int dev_pm_opp_set_rate(struct device *dev, unsigned long target_freq)
++{
++	struct opp_table *opp_table;
++	unsigned long freq, old_freq, temp_freq;
++	struct dev_pm_opp *old_opp, *opp;
++	struct clk *clk;
++	int ret;
++
++	opp_table = _find_opp_table(dev);
++	if (IS_ERR(opp_table)) {
++		dev_err(dev, "%s: device opp doesn't exist\n", __func__);
++		return PTR_ERR(opp_table);
++	}
++
++	if (unlikely(!target_freq)) {
++		if (opp_table->required_opp_tables) {
++			ret = _set_required_opps(dev, opp_table, NULL);
++		} else {
++			dev_err(dev, "target frequency can't be 0\n");
++			ret = -EINVAL;
++		}
++
++		goto put_opp_table;
++	}
++
++	clk = opp_table->clk;
++	if (IS_ERR(clk)) {
++		dev_err(dev, "%s: No clock available for the device\n",
++			__func__);
++		ret = PTR_ERR(clk);
++		goto put_opp_table;
++	}
++
++	freq = clk_round_rate(clk, target_freq);
++	if ((long)freq <= 0)
++		freq = target_freq;
++
++	old_freq = clk_get_rate(clk);
++
++	/* Return early if nothing to do */
++	if (old_freq == freq) {
++		dev_dbg(dev, "%s: old/new frequencies (%lu Hz) are same, nothing to do\n",
++			__func__, freq);
++		ret = 0;
++		goto put_opp_table;
++	}
++
++	temp_freq = old_freq;
++	old_opp = _find_freq_ceil(opp_table, &temp_freq);
++	if (IS_ERR(old_opp)) {
++		dev_err(dev, "%s: failed to find current OPP for freq %lu (%ld)\n",
++			__func__, old_freq, PTR_ERR(old_opp));
++	}
++
++	temp_freq = freq;
++	opp = _find_freq_ceil(opp_table, &temp_freq);
++	if (IS_ERR(opp)) {
++		ret = PTR_ERR(opp);
++		dev_err(dev, "%s: failed to find OPP for freq %lu (%d)\n",
++			__func__, freq, ret);
++		goto put_old_opp;
++	}
++
++	dev_dbg(dev, "%s: switching OPP: %lu Hz --> %lu Hz\n", __func__,
++		old_freq, freq);
++
++	/* Scaling up? Configure required OPPs before frequency */
++	if (freq >= old_freq) {
++		ret = _set_required_opps(dev, opp_table, opp);
++		if (ret)
++			goto put_opp;
++	}
++
++	if (opp_table->set_opp) {
++		ret = _set_opp_custom(opp_table, dev, old_freq, freq,
++				      IS_ERR(old_opp) ? NULL : old_opp->supplies,
++				      opp->supplies);
++	} else if (opp_table->regulators) {
++		ret = _generic_set_opp_regulator(opp_table, dev, old_freq, freq,
++						 IS_ERR(old_opp) ? NULL : old_opp->supplies,
++						 opp->supplies);
++	} else {
++		/* Only frequency scaling */
++		ret = _generic_set_opp_clk_only(dev, clk, freq);
++	}
++
++	/* Scaling down? Configure required OPPs after frequency */
++	if (!ret && freq < old_freq) {
++		ret = _set_required_opps(dev, opp_table, opp);
++		if (ret)
++			dev_err(dev, "Failed to set required opps: %d\n", ret);
++	}
++
++put_opp:
++	dev_pm_opp_put(opp);
++put_old_opp:
++	if (!IS_ERR(old_opp))
++		dev_pm_opp_put(old_opp);
++put_opp_table:
++	dev_pm_opp_put_opp_table(opp_table);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_set_rate);
++
++/* OPP-dev Helpers */
++static void _remove_opp_dev(struct opp_device *opp_dev,
++			    struct opp_table *opp_table)
++{
++	opp_debug_unregister(opp_dev, opp_table);
++	list_del(&opp_dev->node);
++	kfree(opp_dev);
++}
++
++static struct opp_device *_add_opp_dev_unlocked(const struct device *dev,
++						struct opp_table *opp_table)
++{
++	struct opp_device *opp_dev;
++
++	opp_dev = kzalloc(sizeof(*opp_dev), GFP_KERNEL);
++	if (!opp_dev)
++		return NULL;
++
++	/* Initialize opp-dev */
++	opp_dev->dev = dev;
++
++	list_add(&opp_dev->node, &opp_table->dev_list);
++
++	/* Create debugfs entries for the opp_table */
++	opp_debug_register(opp_dev, opp_table);
++
++	return opp_dev;
++}
++
++struct opp_device *_add_opp_dev(const struct device *dev,
++				struct opp_table *opp_table)
++{
++	struct opp_device *opp_dev;
++
++	mutex_lock(&opp_table->lock);
++	opp_dev = _add_opp_dev_unlocked(dev, opp_table);
++	mutex_unlock(&opp_table->lock);
++
++	return opp_dev;
++}
++
++static struct opp_table *_allocate_opp_table(struct device *dev, int index)
++{
++	struct opp_table *opp_table;
++	struct opp_device *opp_dev;
++	int ret;
++
++	/*
++	 * Allocate a new OPP table. In the infrequent case where a new
++	 * device is needed to be added, we pay this penalty.
++	 */
++	opp_table = kzalloc(sizeof(*opp_table), GFP_KERNEL);
++	if (!opp_table)
++		return NULL;
++
++	mutex_init(&opp_table->lock);
++	mutex_init(&opp_table->genpd_virt_dev_lock);
++	INIT_LIST_HEAD(&opp_table->dev_list);
++
++	/* Mark regulator count uninitialized */
++	opp_table->regulator_count = -1;
++
++	opp_dev = _add_opp_dev(dev, opp_table);
++	if (!opp_dev) {
++		kfree(opp_table);
++		return NULL;
++	}
++
++	_of_init_opp_table(opp_table, dev, index);
++
++	/* Find clk for the device */
++	opp_table->clk = clk_get(dev, NULL);
++	if (IS_ERR(opp_table->clk)) {
++		ret = PTR_ERR(opp_table->clk);
++		if (ret != -EPROBE_DEFER)
++			dev_dbg(dev, "%s: Couldn't find clock: %d\n", __func__,
++				ret);
++	}
++
++	BLOCKING_INIT_NOTIFIER_HEAD(&opp_table->head);
++	INIT_LIST_HEAD(&opp_table->opp_list);
++	kref_init(&opp_table->kref);
++
++	/* Secure the device table modification */
++	list_add(&opp_table->node, &opp_tables);
++	return opp_table;
++}
++
++void _get_opp_table_kref(struct opp_table *opp_table)
++{
++	kref_get(&opp_table->kref);
++}
++
++static struct opp_table *_opp_get_opp_table(struct device *dev, int index)
++{
++	struct opp_table *opp_table;
++
++	/* Hold our table modification lock here */
++	mutex_lock(&opp_table_lock);
++
++	opp_table = _find_opp_table_unlocked(dev);
++	if (!IS_ERR(opp_table))
++		goto unlock;
++
++	opp_table = _managed_opp(dev, index);
++	if (opp_table) {
++		if (!_add_opp_dev_unlocked(dev, opp_table)) {
++			dev_pm_opp_put_opp_table(opp_table);
++			opp_table = NULL;
++		}
++		goto unlock;
++	}
++
++	opp_table = _allocate_opp_table(dev, index);
++
++unlock:
++	mutex_unlock(&opp_table_lock);
++
++	return opp_table;
++}
++
++struct opp_table *dev_pm_opp_get_opp_table(struct device *dev)
++{
++	return _opp_get_opp_table(dev, 0);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_get_opp_table);
++
++struct opp_table *dev_pm_opp_get_opp_table_indexed(struct device *dev,
++						   int index)
++{
++	return _opp_get_opp_table(dev, index);
++}
++
++static void _opp_table_kref_release(struct kref *kref)
++{
++	struct opp_table *opp_table = container_of(kref, struct opp_table, kref);
++	struct opp_device *opp_dev, *temp;
++
++	_of_clear_opp_table(opp_table);
++
++	/* Release clk */
++	if (!IS_ERR(opp_table->clk))
++		clk_put(opp_table->clk);
++
++	WARN_ON(!list_empty(&opp_table->opp_list));
++
++	list_for_each_entry_safe(opp_dev, temp, &opp_table->dev_list, node) {
++		/*
++		 * The OPP table is getting removed, drop the performance state
++		 * constraints.
++		 */
++		if (opp_table->genpd_performance_state)
++			dev_pm_genpd_set_performance_state((struct device *)(opp_dev->dev), 0);
++
++		_remove_opp_dev(opp_dev, opp_table);
++	}
++
++	mutex_destroy(&opp_table->genpd_virt_dev_lock);
++	mutex_destroy(&opp_table->lock);
++	list_del(&opp_table->node);
++	kfree(opp_table);
++
++	mutex_unlock(&opp_table_lock);
++}
++
++void _opp_remove_all_static(struct opp_table *opp_table)
++{
++	struct dev_pm_opp *opp, *tmp;
++
++	list_for_each_entry_safe(opp, tmp, &opp_table->opp_list, node) {
++		if (!opp->dynamic)
++			dev_pm_opp_put(opp);
++	}
++
++	opp_table->parsed_static_opps = false;
++}
++
++static void _opp_table_list_kref_release(struct kref *kref)
++{
++	struct opp_table *opp_table = container_of(kref, struct opp_table,
++						   list_kref);
++
++	_opp_remove_all_static(opp_table);
++	mutex_unlock(&opp_table_lock);
++}
++
++void _put_opp_list_kref(struct opp_table *opp_table)
++{
++	kref_put_mutex(&opp_table->list_kref, _opp_table_list_kref_release,
++		       &opp_table_lock);
++}
++
++void dev_pm_opp_put_opp_table(struct opp_table *opp_table)
++{
++	kref_put_mutex(&opp_table->kref, _opp_table_kref_release,
++		       &opp_table_lock);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_put_opp_table);
++
++void _opp_free(struct dev_pm_opp *opp)
++{
++	kfree(opp);
++}
++
++static void _opp_kref_release(struct dev_pm_opp *opp,
++			      struct opp_table *opp_table)
++{
++	/*
++	 * Notify the changes in the availability of the operable
++	 * frequency/voltage list.
++	 */
++	blocking_notifier_call_chain(&opp_table->head, OPP_EVENT_REMOVE, opp);
++	_of_opp_free_required_opps(opp_table, opp);
++	opp_debug_remove_one(opp);
++	list_del(&opp->node);
++	kfree(opp);
++}
++
++static void _opp_kref_release_unlocked(struct kref *kref)
++{
++	struct dev_pm_opp *opp = container_of(kref, struct dev_pm_opp, kref);
++	struct opp_table *opp_table = opp->opp_table;
++
++	_opp_kref_release(opp, opp_table);
++}
++
++static void _opp_kref_release_locked(struct kref *kref)
++{
++	struct dev_pm_opp *opp = container_of(kref, struct dev_pm_opp, kref);
++	struct opp_table *opp_table = opp->opp_table;
++
++	_opp_kref_release(opp, opp_table);
++	mutex_unlock(&opp_table->lock);
++}
++
++void dev_pm_opp_get(struct dev_pm_opp *opp)
++{
++	kref_get(&opp->kref);
++}
++
++void dev_pm_opp_put(struct dev_pm_opp *opp)
++{
++	kref_put_mutex(&opp->kref, _opp_kref_release_locked,
++		       &opp->opp_table->lock);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_put);
++
++static void dev_pm_opp_put_unlocked(struct dev_pm_opp *opp)
++{
++	kref_put(&opp->kref, _opp_kref_release_unlocked);
++}
++
++/**
++ * dev_pm_opp_remove()  - Remove an OPP from OPP table
++ * @dev:	device for which we do this operation
++ * @freq:	OPP to remove with matching 'freq'
++ *
++ * This function removes an opp from the opp table.
++ */
++void dev_pm_opp_remove(struct device *dev, unsigned long freq)
++{
++	struct dev_pm_opp *opp;
++	struct opp_table *opp_table;
++	bool found = false;
++
++	opp_table = _find_opp_table(dev);
++	if (IS_ERR(opp_table))
++		return;
++
++	mutex_lock(&opp_table->lock);
++
++	list_for_each_entry(opp, &opp_table->opp_list, node) {
++		if (opp->rate == freq) {
++			found = true;
++			break;
++		}
++	}
++
++	mutex_unlock(&opp_table->lock);
++
++	if (found) {
++		dev_pm_opp_put(opp);
++
++		/* Drop the reference taken by dev_pm_opp_add() */
++		dev_pm_opp_put_opp_table(opp_table);
++	} else {
++		dev_warn(dev, "%s: Couldn't find OPP with freq: %lu\n",
++			 __func__, freq);
++	}
++
++	/* Drop the reference taken by _find_opp_table() */
++	dev_pm_opp_put_opp_table(opp_table);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_remove);
++
++/**
++ * dev_pm_opp_remove_all_dynamic() - Remove all dynamically created OPPs
++ * @dev:	device for which we do this operation
++ *
++ * This function removes all dynamically created OPPs from the opp table.
++ */
++void dev_pm_opp_remove_all_dynamic(struct device *dev)
++{
++	struct opp_table *opp_table;
++	struct dev_pm_opp *opp, *temp;
++	int count = 0;
++
++	opp_table = _find_opp_table(dev);
++	if (IS_ERR(opp_table))
++		return;
++
++	mutex_lock(&opp_table->lock);
++	list_for_each_entry_safe(opp, temp, &opp_table->opp_list, node) {
++		if (opp->dynamic) {
++			dev_pm_opp_put_unlocked(opp);
++			count++;
++		}
++	}
++	mutex_unlock(&opp_table->lock);
++
++	/* Drop the references taken by dev_pm_opp_add() */
++	while (count--)
++		dev_pm_opp_put_opp_table(opp_table);
++
++	/* Drop the reference taken by _find_opp_table() */
++	dev_pm_opp_put_opp_table(opp_table);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_remove_all_dynamic);
++
++struct dev_pm_opp *_opp_allocate(struct opp_table *table)
++{
++	struct dev_pm_opp *opp;
++	int count, supply_size;
++
++	/* Allocate space for at least one supply */
++	count = table->regulator_count > 0 ? table->regulator_count : 1;
++	supply_size = sizeof(*opp->supplies) * count;
++
++	/* allocate new OPP node and supplies structures */
++	opp = kzalloc(sizeof(*opp) + supply_size, GFP_KERNEL);
++	if (!opp)
++		return NULL;
++
++	/* Put the supplies at the end of the OPP structure as an empty array */
++	opp->supplies = (struct dev_pm_opp_supply *)(opp + 1);
++	INIT_LIST_HEAD(&opp->node);
++
++	return opp;
++}
++
++static bool _opp_supported_by_regulators(struct dev_pm_opp *opp,
++					 struct opp_table *opp_table)
++{
++	struct regulator *reg;
++	int i;
++
++	if (!opp_table->regulators)
++		return true;
++
++	for (i = 0; i < opp_table->regulator_count; i++) {
++		reg = opp_table->regulators[i];
++
++		if (!regulator_is_supported_voltage(reg,
++					opp->supplies[i].u_volt_min,
++					opp->supplies[i].u_volt_max)) {
++			pr_warn("%s: OPP minuV: %lu maxuV: %lu, not supported by regulator\n",
++				__func__, opp->supplies[i].u_volt_min,
++				opp->supplies[i].u_volt_max);
++			return false;
++		}
++	}
++
++	return true;
++}
++
++static int _opp_is_duplicate(struct device *dev, struct dev_pm_opp *new_opp,
++			     struct opp_table *opp_table,
++			     struct list_head **head)
++{
++	struct dev_pm_opp *opp;
++
++	/*
++	 * Insert new OPP in order of increasing frequency and discard if
++	 * already present.
++	 *
++	 * Need to use &opp_table->opp_list in the condition part of the 'for'
++	 * loop, don't replace it with head otherwise it will become an infinite
++	 * loop.
++	 */
++	list_for_each_entry(opp, &opp_table->opp_list, node) {
++		if (new_opp->rate > opp->rate) {
++			*head = &opp->node;
++			continue;
++		}
++
++		if (new_opp->rate < opp->rate)
++			return 0;
++
++		/* Duplicate OPPs */
++		dev_warn(dev, "%s: duplicate OPPs detected. Existing: freq: %lu, volt: %lu, enabled: %d. New: freq: %lu, volt: %lu, enabled: %d\n",
++			 __func__, opp->rate, opp->supplies[0].u_volt,
++			 opp->available, new_opp->rate,
++			 new_opp->supplies[0].u_volt, new_opp->available);
++
++		/* Should we compare voltages for all regulators here ? */
++		return opp->available &&
++		       new_opp->supplies[0].u_volt == opp->supplies[0].u_volt ? -EBUSY : -EEXIST;
++	}
++
++	return 0;
++}
++
++/*
++ * Returns:
++ * 0: On success. And appropriate error message for duplicate OPPs.
++ * -EBUSY: For OPP with same freq/volt and is available. The callers of
++ *  _opp_add() must return 0 if they receive -EBUSY from it. This is to make
++ *  sure we don't print error messages unnecessarily if different parts of
++ *  kernel try to initialize the OPP table.
++ * -EEXIST: For OPP with same freq but different volt or is unavailable. This
++ *  should be considered an error by the callers of _opp_add().
++ */
++int _opp_add(struct device *dev, struct dev_pm_opp *new_opp,
++	     struct opp_table *opp_table, bool rate_not_available)
++{
++	struct list_head *head;
++	int ret;
++
++	mutex_lock(&opp_table->lock);
++	head = &opp_table->opp_list;
++
++	if (likely(!rate_not_available)) {
++		ret = _opp_is_duplicate(dev, new_opp, opp_table, &head);
++		if (ret) {
++			mutex_unlock(&opp_table->lock);
++			return ret;
++		}
++	}
++
++	list_add(&new_opp->node, head);
++	mutex_unlock(&opp_table->lock);
++
++	new_opp->opp_table = opp_table;
++	kref_init(&new_opp->kref);
++
++	opp_debug_create_one(new_opp, opp_table);
++
++	if (!_opp_supported_by_regulators(new_opp, opp_table)) {
++		new_opp->available = false;
++		dev_warn(dev, "%s: OPP not supported by regulators (%lu)\n",
++			 __func__, new_opp->rate);
++	}
++
++	return 0;
++}
++
++/**
++ * _opp_add_v1() - Allocate a OPP based on v1 bindings.
++ * @opp_table:	OPP table
++ * @dev:	device for which we do this operation
++ * @freq:	Frequency in Hz for this OPP
++ * @u_volt:	Voltage in uVolts for this OPP
++ * @dynamic:	Dynamically added OPPs.
++ *
++ * This function adds an opp definition to the opp table and returns status.
++ * The opp is made available by default and it can be controlled using
++ * dev_pm_opp_enable/disable functions and may be removed by dev_pm_opp_remove.
++ *
++ * NOTE: "dynamic" parameter impacts OPPs added by the dev_pm_opp_of_add_table
++ * and freed by dev_pm_opp_of_remove_table.
++ *
++ * Return:
++ * 0		On success OR
++ *		Duplicate OPPs (both freq and volt are same) and opp->available
++ * -EEXIST	Freq are same and volt are different OR
++ *		Duplicate OPPs (both freq and volt are same) and !opp->available
++ * -ENOMEM	Memory allocation failure
++ */
++int _opp_add_v1(struct opp_table *opp_table, struct device *dev,
++		unsigned long freq, long u_volt, bool dynamic)
++{
++	struct dev_pm_opp *new_opp;
++	unsigned long tol;
++	int ret;
++
++	new_opp = _opp_allocate(opp_table);
++	if (!new_opp)
++		return -ENOMEM;
++
++	/* populate the opp table */
++	new_opp->rate = freq;
++	tol = u_volt * opp_table->voltage_tolerance_v1 / 100;
++	new_opp->supplies[0].u_volt = u_volt;
++	new_opp->supplies[0].u_volt_min = u_volt - tol;
++	new_opp->supplies[0].u_volt_max = u_volt + tol;
++	new_opp->available = true;
++	new_opp->dynamic = dynamic;
++
++	ret = _opp_add(dev, new_opp, opp_table, false);
++	if (ret) {
++		/* Don't return error for duplicate OPPs */
++		if (ret == -EBUSY)
++			ret = 0;
++		goto free_opp;
++	}
++
++	/*
++	 * Notify the changes in the availability of the operable
++	 * frequency/voltage list.
++	 */
++	blocking_notifier_call_chain(&opp_table->head, OPP_EVENT_ADD, new_opp);
++	return 0;
++
++free_opp:
++	_opp_free(new_opp);
++
++	return ret;
++}
++
++/**
++ * dev_pm_opp_set_supported_hw() - Set supported platforms
++ * @dev: Device for which supported-hw has to be set.
++ * @versions: Array of hierarchy of versions to match.
++ * @count: Number of elements in the array.
++ *
++ * This is required only for the V2 bindings, and it enables a platform to
++ * specify the hierarchy of versions it supports. OPP layer will then enable
++ * OPPs, which are available for those versions, based on its 'opp-supported-hw'
++ * property.
++ */
++struct opp_table *dev_pm_opp_set_supported_hw(struct device *dev,
++			const u32 *versions, unsigned int count)
++{
++	struct opp_table *opp_table;
++
++	opp_table = dev_pm_opp_get_opp_table(dev);
++	if (!opp_table)
++		return ERR_PTR(-ENOMEM);
++
++	/* Make sure there are no concurrent readers while updating opp_table */
++	WARN_ON(!list_empty(&opp_table->opp_list));
++
++	/* Another CPU that shares the OPP table has set the property ? */
++	if (opp_table->supported_hw)
++		return opp_table;
++
++	opp_table->supported_hw = kmemdup(versions, count * sizeof(*versions),
++					GFP_KERNEL);
++	if (!opp_table->supported_hw) {
++		dev_pm_opp_put_opp_table(opp_table);
++		return ERR_PTR(-ENOMEM);
++	}
++
++	opp_table->supported_hw_count = count;
++
++	return opp_table;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_set_supported_hw);
++
++/**
++ * dev_pm_opp_put_supported_hw() - Releases resources blocked for supported hw
++ * @opp_table: OPP table returned by dev_pm_opp_set_supported_hw().
++ *
++ * This is required only for the V2 bindings, and is called for a matching
++ * dev_pm_opp_set_supported_hw(). Until this is called, the opp_table structure
++ * will not be freed.
++ */
++void dev_pm_opp_put_supported_hw(struct opp_table *opp_table)
++{
++	/* Make sure there are no concurrent readers while updating opp_table */
++	WARN_ON(!list_empty(&opp_table->opp_list));
++
++	kfree(opp_table->supported_hw);
++	opp_table->supported_hw = NULL;
++	opp_table->supported_hw_count = 0;
++
++	dev_pm_opp_put_opp_table(opp_table);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_put_supported_hw);
++
++/**
++ * dev_pm_opp_set_prop_name() - Set prop-extn name
++ * @dev: Device for which the prop-name has to be set.
++ * @name: name to postfix to properties.
++ *
++ * This is required only for the V2 bindings, and it enables a platform to
++ * specify the extn to be used for certain property names. The properties to
++ * which the extension will apply are opp-microvolt and opp-microamp. OPP core
++ * should postfix the property name with -<name> while looking for them.
++ */
++struct opp_table *dev_pm_opp_set_prop_name(struct device *dev, const char *name)
++{
++	struct opp_table *opp_table;
++
++	opp_table = dev_pm_opp_get_opp_table(dev);
++	if (!opp_table)
++		return ERR_PTR(-ENOMEM);
++
++	/* Make sure there are no concurrent readers while updating opp_table */
++	WARN_ON(!list_empty(&opp_table->opp_list));
++
++	/* Another CPU that shares the OPP table has set the property ? */
++	if (opp_table->prop_name)
++		return opp_table;
++
++	opp_table->prop_name = kstrdup(name, GFP_KERNEL);
++	if (!opp_table->prop_name) {
++		dev_pm_opp_put_opp_table(opp_table);
++		return ERR_PTR(-ENOMEM);
++	}
++
++	return opp_table;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_set_prop_name);
++
++/**
++ * dev_pm_opp_put_prop_name() - Releases resources blocked for prop-name
++ * @opp_table: OPP table returned by dev_pm_opp_set_prop_name().
++ *
++ * This is required only for the V2 bindings, and is called for a matching
++ * dev_pm_opp_set_prop_name(). Until this is called, the opp_table structure
++ * will not be freed.
++ */
++void dev_pm_opp_put_prop_name(struct opp_table *opp_table)
++{
++	/* Make sure there are no concurrent readers while updating opp_table */
++	WARN_ON(!list_empty(&opp_table->opp_list));
++
++	kfree(opp_table->prop_name);
++	opp_table->prop_name = NULL;
++
++	dev_pm_opp_put_opp_table(opp_table);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_put_prop_name);
++
++static int _allocate_set_opp_data(struct opp_table *opp_table)
++{
++	struct dev_pm_set_opp_data *data;
++	int len, count = opp_table->regulator_count;
++
++	if (WARN_ON(!opp_table->regulators))
++		return -EINVAL;
++
++	/* space for set_opp_data */
++	len = sizeof(*data);
++
++	/* space for old_opp.supplies and new_opp.supplies */
++	len += 2 * sizeof(struct dev_pm_opp_supply) * count;
++
++	data = kzalloc(len, GFP_KERNEL);
++	if (!data)
++		return -ENOMEM;
++
++	data->old_opp.supplies = (void *)(data + 1);
++	data->new_opp.supplies = data->old_opp.supplies + count;
++
++	opp_table->set_opp_data = data;
++
++	return 0;
++}
++
++static void _free_set_opp_data(struct opp_table *opp_table)
++{
++	kfree(opp_table->set_opp_data);
++	opp_table->set_opp_data = NULL;
++}
++
++/**
++ * dev_pm_opp_set_regulators() - Set regulator names for the device
++ * @dev: Device for which regulator name is being set.
++ * @names: Array of pointers to the names of the regulator.
++ * @count: Number of regulators.
++ *
++ * In order to support OPP switching, OPP layer needs to know the name of the
++ * device's regulators, as the core would be required to switch voltages as
++ * well.
++ *
++ * This must be called before any OPPs are initialized for the device.
++ */
++struct opp_table *dev_pm_opp_set_regulators(struct device *dev,
++					    const char * const names[],
++					    unsigned int count)
++{
++	struct opp_table *opp_table;
++	struct regulator *reg;
++	int ret, i;
++
++	opp_table = dev_pm_opp_get_opp_table(dev);
++	if (!opp_table)
++		return ERR_PTR(-ENOMEM);
++
++	/* This should be called before OPPs are initialized */
++	if (WARN_ON(!list_empty(&opp_table->opp_list))) {
++		ret = -EBUSY;
++		goto err;
++	}
++
++	/* Another CPU that shares the OPP table has set the regulators ? */
++	if (opp_table->regulators)
++		return opp_table;
++
++	opp_table->regulators = kmalloc_array(count,
++					      sizeof(*opp_table->regulators),
++					      GFP_KERNEL);
++	if (!opp_table->regulators) {
++		ret = -ENOMEM;
++		goto err;
++	}
++
++	for (i = 0; i < count; i++) {
++		reg = regulator_get_optional(dev, names[i]);
++		if (IS_ERR(reg)) {
++			ret = PTR_ERR(reg);
++			if (ret != -EPROBE_DEFER)
++				dev_err(dev, "%s: no regulator (%s) found: %d\n",
++					__func__, names[i], ret);
++			goto free_regulators;
++		}
++
++		opp_table->regulators[i] = reg;
++	}
++
++	opp_table->regulator_count = count;
++
++	/* Allocate block only once to pass to set_opp() routines */
++	ret = _allocate_set_opp_data(opp_table);
++	if (ret)
++		goto free_regulators;
++
++	return opp_table;
++
++free_regulators:
++	while (i != 0)
++		regulator_put(opp_table->regulators[--i]);
++
++	kfree(opp_table->regulators);
++	opp_table->regulators = NULL;
++	opp_table->regulator_count = -1;
++err:
++	dev_pm_opp_put_opp_table(opp_table);
++
++	return ERR_PTR(ret);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_set_regulators);
++
++/**
++ * dev_pm_opp_put_regulators() - Releases resources blocked for regulator
++ * @opp_table: OPP table returned from dev_pm_opp_set_regulators().
++ */
++void dev_pm_opp_put_regulators(struct opp_table *opp_table)
++{
++	int i;
++
++	if (!opp_table->regulators)
++		goto put_opp_table;
++
++	/* Make sure there are no concurrent readers while updating opp_table */
++	WARN_ON(!list_empty(&opp_table->opp_list));
++
++	for (i = opp_table->regulator_count - 1; i >= 0; i--)
++		regulator_put(opp_table->regulators[i]);
++
++	_free_set_opp_data(opp_table);
++
++	kfree(opp_table->regulators);
++	opp_table->regulators = NULL;
++	opp_table->regulator_count = -1;
++
++put_opp_table:
++	dev_pm_opp_put_opp_table(opp_table);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_put_regulators);
++
++/**
++ * dev_pm_opp_set_clkname() - Set clk name for the device
++ * @dev: Device for which clk name is being set.
++ * @name: Clk name.
++ *
++ * In order to support OPP switching, OPP layer needs to get pointer to the
++ * clock for the device. Simple cases work fine without using this routine (i.e.
++ * by passing connection-id as NULL), but for a device with multiple clocks
++ * available, the OPP core needs to know the exact name of the clk to use.
++ *
++ * This must be called before any OPPs are initialized for the device.
++ */
++struct opp_table *dev_pm_opp_set_clkname(struct device *dev, const char *name)
++{
++	struct opp_table *opp_table;
++	int ret;
++
++	opp_table = dev_pm_opp_get_opp_table(dev);
++	if (!opp_table)
++		return ERR_PTR(-ENOMEM);
++
++	/* This should be called before OPPs are initialized */
++	if (WARN_ON(!list_empty(&opp_table->opp_list))) {
++		ret = -EBUSY;
++		goto err;
++	}
++
++	/* Already have default clk set, free it */
++	if (!IS_ERR(opp_table->clk))
++		clk_put(opp_table->clk);
++
++	/* Find clk for the device */
++	opp_table->clk = clk_get(dev, name);
++	if (IS_ERR(opp_table->clk)) {
++		ret = PTR_ERR(opp_table->clk);
++		if (ret != -EPROBE_DEFER) {
++			dev_err(dev, "%s: Couldn't find clock: %d\n", __func__,
++				ret);
++		}
++		goto err;
++	}
++
++	return opp_table;
++
++err:
++	dev_pm_opp_put_opp_table(opp_table);
++
++	return ERR_PTR(ret);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_set_clkname);
++
++/**
++ * dev_pm_opp_put_clkname() - Releases resources blocked for clk.
++ * @opp_table: OPP table returned from dev_pm_opp_set_clkname().
++ */
++void dev_pm_opp_put_clkname(struct opp_table *opp_table)
++{
++	/* Make sure there are no concurrent readers while updating opp_table */
++	WARN_ON(!list_empty(&opp_table->opp_list));
++
++	clk_put(opp_table->clk);
++	opp_table->clk = ERR_PTR(-EINVAL);
++
++	dev_pm_opp_put_opp_table(opp_table);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_put_clkname);
++
++/**
++ * dev_pm_opp_register_set_opp_helper() - Register custom set OPP helper
++ * @dev: Device for which the helper is getting registered.
++ * @set_opp: Custom set OPP helper.
++ *
++ * This is useful to support complex platforms (like platforms with multiple
++ * regulators per device), instead of the generic OPP set rate helper.
++ *
++ * This must be called before any OPPs are initialized for the device.
++ */
++struct opp_table *dev_pm_opp_register_set_opp_helper(struct device *dev,
++			int (*set_opp)(struct dev_pm_set_opp_data *data))
++{
++	struct opp_table *opp_table;
++
++	if (!set_opp)
++		return ERR_PTR(-EINVAL);
++
++	opp_table = dev_pm_opp_get_opp_table(dev);
++	if (!opp_table)
++		return ERR_PTR(-ENOMEM);
++
++	/* This should be called before OPPs are initialized */
++	if (WARN_ON(!list_empty(&opp_table->opp_list))) {
++		dev_pm_opp_put_opp_table(opp_table);
++		return ERR_PTR(-EBUSY);
++	}
++
++	/* Another CPU that shares the OPP table has set the helper ? */
++	if (!opp_table->set_opp)
++		opp_table->set_opp = set_opp;
++
++	return opp_table;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_register_set_opp_helper);
++
++/**
++ * dev_pm_opp_unregister_set_opp_helper() - Releases resources blocked for
++ *					   set_opp helper
++ * @opp_table: OPP table returned from dev_pm_opp_register_set_opp_helper().
++ *
++ * Release resources blocked for platform specific set_opp helper.
++ */
++void dev_pm_opp_unregister_set_opp_helper(struct opp_table *opp_table)
++{
++	/* Make sure there are no concurrent readers while updating opp_table */
++	WARN_ON(!list_empty(&opp_table->opp_list));
++
++	opp_table->set_opp = NULL;
++	dev_pm_opp_put_opp_table(opp_table);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_unregister_set_opp_helper);
++
++static void _opp_detach_genpd(struct opp_table *opp_table)
++{
++	int index;
++
++	for (index = 0; index < opp_table->required_opp_count; index++) {
++		if (!opp_table->genpd_virt_devs[index])
++			continue;
++
++		dev_pm_domain_detach(opp_table->genpd_virt_devs[index], false);
++		opp_table->genpd_virt_devs[index] = NULL;
++	}
++
++	kfree(opp_table->genpd_virt_devs);
++	opp_table->genpd_virt_devs = NULL;
++}
++
++/**
++ * dev_pm_opp_attach_genpd - Attach genpd(s) for the device and save virtual device pointer
++ * @dev: Consumer device for which the genpd is getting attached.
++ * @names: Null terminated array of pointers containing names of genpd to attach.
++ *
++ * Multiple generic power domains for a device are supported with the help of
++ * virtual genpd devices, which are created for each consumer device - genpd
++ * pair. These are the device structures which are attached to the power domain
++ * and are required by the OPP core to set the performance state of the genpd.
++ * The same API also works for the case where single genpd is available and so
++ * we don't need to support that separately.
++ *
++ * This helper will normally be called by the consumer driver of the device
++ * "dev", as only that has details of the genpd names.
++ *
++ * This helper needs to be called once with a list of all genpd to attach.
++ * Otherwise the original device structure will be used instead by the OPP core.
++ */
++struct opp_table *dev_pm_opp_attach_genpd(struct device *dev, const char **names)
++{
++	struct opp_table *opp_table;
++	struct device *virt_dev;
++	int index, ret = -EINVAL;
++	const char **name = names;
++
++	opp_table = dev_pm_opp_get_opp_table(dev);
++	if (!opp_table)
++		return ERR_PTR(-ENOMEM);
++
++	/*
++	 * If the genpd's OPP table isn't already initialized, parsing of the
++	 * required-opps fail for dev. We should retry this after genpd's OPP
++	 * table is added.
++	 */
++	if (!opp_table->required_opp_count) {
++		ret = -EPROBE_DEFER;
++		goto put_table;
++	}
++
++	mutex_lock(&opp_table->genpd_virt_dev_lock);
++
++	opp_table->genpd_virt_devs = kcalloc(opp_table->required_opp_count,
++					     sizeof(*opp_table->genpd_virt_devs),
++					     GFP_KERNEL);
++	if (!opp_table->genpd_virt_devs)
++		goto unlock;
++
++	while (*name) {
++		index = of_property_match_string(dev->of_node,
++						 "power-domain-names", *name);
++		if (index < 0) {
++			dev_err(dev, "Failed to find power domain: %s (%d)\n",
++				*name, index);
++			goto err;
++		}
++
++		if (index >= opp_table->required_opp_count) {
++			dev_err(dev, "Index can't be greater than required-opp-count - 1, %s (%d : %d)\n",
++				*name, opp_table->required_opp_count, index);
++			goto err;
++		}
++
++		if (opp_table->genpd_virt_devs[index]) {
++			dev_err(dev, "Genpd virtual device already set %s\n",
++				*name);
++			goto err;
++		}
++
++		virt_dev = dev_pm_domain_attach_by_name(dev, *name);
++		if (IS_ERR(virt_dev)) {
++			ret = PTR_ERR(virt_dev);
++			dev_err(dev, "Couldn't attach to pm_domain: %d\n", ret);
++			goto err;
++		}
++
++		opp_table->genpd_virt_devs[index] = virt_dev;
++		name++;
++	}
++
++	mutex_unlock(&opp_table->genpd_virt_dev_lock);
++
++	return opp_table;
++
++err:
++	_opp_detach_genpd(opp_table);
++unlock:
++	mutex_unlock(&opp_table->genpd_virt_dev_lock);
++
++put_table:
++	dev_pm_opp_put_opp_table(opp_table);
++
++	return ERR_PTR(ret);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_attach_genpd);
++
++/**
++ * dev_pm_opp_detach_genpd() - Detach genpd(s) from the device.
++ * @opp_table: OPP table returned by dev_pm_opp_attach_genpd().
++ *
++ * This detaches the genpd(s), resets the virtual device pointers, and puts the
++ * OPP table.
++ */
++void dev_pm_opp_detach_genpd(struct opp_table *opp_table)
++{
++	/*
++	 * Acquire genpd_virt_dev_lock to make sure virt_dev isn't getting
++	 * used in parallel.
++	 */
++	mutex_lock(&opp_table->genpd_virt_dev_lock);
++	_opp_detach_genpd(opp_table);
++	mutex_unlock(&opp_table->genpd_virt_dev_lock);
++
++	dev_pm_opp_put_opp_table(opp_table);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_detach_genpd);
++
++/**
++ * dev_pm_opp_xlate_performance_state() - Find required OPP's pstate for src_table.
++ * @src_table: OPP table which has dst_table as one of its required OPP table.
++ * @dst_table: Required OPP table of the src_table.
++ * @pstate: Current performance state of the src_table.
++ *
++ * This Returns pstate of the OPP (present in @dst_table) pointed out by the
++ * "required-opps" property of the OPP (present in @src_table) which has
++ * performance state set to @pstate.
++ *
++ * Return: Zero or positive performance state on success, otherwise negative
++ * value on errors.
++ */
++int dev_pm_opp_xlate_performance_state(struct opp_table *src_table,
++				       struct opp_table *dst_table,
++				       unsigned int pstate)
++{
++	struct dev_pm_opp *opp;
++	int dest_pstate = -EINVAL;
++	int i;
++
++	if (!pstate)
++		return 0;
++
++	/*
++	 * Normally the src_table will have the "required_opps" property set to
++	 * point to one of the OPPs in the dst_table, but in some cases the
++	 * genpd and its master have one to one mapping of performance states
++	 * and so none of them have the "required-opps" property set. Return the
++	 * pstate of the src_table as it is in such cases.
++	 */
++	if (!src_table->required_opp_count)
++		return pstate;
++
++	for (i = 0; i < src_table->required_opp_count; i++) {
++		if (src_table->required_opp_tables[i]->np == dst_table->np)
++			break;
++	}
++
++	if (unlikely(i == src_table->required_opp_count)) {
++		pr_err("%s: Couldn't find matching OPP table (%p: %p)\n",
++		       __func__, src_table, dst_table);
++		return -EINVAL;
++	}
++
++	mutex_lock(&src_table->lock);
++
++	list_for_each_entry(opp, &src_table->opp_list, node) {
++		if (opp->pstate == pstate) {
++			dest_pstate = opp->required_opps[i]->pstate;
++			goto unlock;
++		}
++	}
++
++	pr_err("%s: Couldn't find matching OPP (%p: %p)\n", __func__, src_table,
++	       dst_table);
++
++unlock:
++	mutex_unlock(&src_table->lock);
++
++	return dest_pstate;
++}
++
++/**
++ * dev_pm_opp_add()  - Add an OPP table from a table definitions
++ * @dev:	device for which we do this operation
++ * @freq:	Frequency in Hz for this OPP
++ * @u_volt:	Voltage in uVolts for this OPP
++ *
++ * This function adds an opp definition to the opp table and returns status.
++ * The opp is made available by default and it can be controlled using
++ * dev_pm_opp_enable/disable functions.
++ *
++ * Return:
++ * 0		On success OR
++ *		Duplicate OPPs (both freq and volt are same) and opp->available
++ * -EEXIST	Freq are same and volt are different OR
++ *		Duplicate OPPs (both freq and volt are same) and !opp->available
++ * -ENOMEM	Memory allocation failure
++ */
++int dev_pm_opp_add(struct device *dev, unsigned long freq, unsigned long u_volt)
++{
++	struct opp_table *opp_table;
++	int ret;
++
++	opp_table = dev_pm_opp_get_opp_table(dev);
++	if (!opp_table)
++		return -ENOMEM;
++
++	/* Fix regulator count for dynamic OPPs */
++	opp_table->regulator_count = 1;
++
++	ret = _opp_add_v1(opp_table, dev, freq, u_volt, true);
++	if (ret)
++		dev_pm_opp_put_opp_table(opp_table);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_add);
++
++/**
++ * _opp_set_availability() - helper to set the availability of an opp
++ * @dev:		device for which we do this operation
++ * @freq:		OPP frequency to modify availability
++ * @availability_req:	availability status requested for this opp
++ *
++ * Set the availability of an OPP, opp_{enable,disable} share a common logic
++ * which is isolated here.
++ *
++ * Return: -EINVAL for bad pointers, -ENOMEM if no memory available for the
++ * copy operation, returns 0 if no modification was done OR modification was
++ * successful.
++ */
++static int _opp_set_availability(struct device *dev, unsigned long freq,
++				 bool availability_req)
++{
++	struct opp_table *opp_table;
++	struct dev_pm_opp *tmp_opp, *opp = ERR_PTR(-ENODEV);
++	int r = 0;
++
++	/* Find the opp_table */
++	opp_table = _find_opp_table(dev);
++	if (IS_ERR(opp_table)) {
++		r = PTR_ERR(opp_table);
++		dev_warn(dev, "%s: Device OPP not found (%d)\n", __func__, r);
++		return r;
++	}
++
++	mutex_lock(&opp_table->lock);
++
++	/* Do we have the frequency? */
++	list_for_each_entry(tmp_opp, &opp_table->opp_list, node) {
++		if (tmp_opp->rate == freq) {
++			opp = tmp_opp;
++			break;
++		}
++	}
++
++	if (IS_ERR(opp)) {
++		r = PTR_ERR(opp);
++		goto unlock;
++	}
++
++	/* Is update really needed? */
++	if (opp->available == availability_req)
++		goto unlock;
++
++	opp->available = availability_req;
++
++	dev_pm_opp_get(opp);
++	mutex_unlock(&opp_table->lock);
++
++	/* Notify the change of the OPP availability */
++	if (availability_req)
++		blocking_notifier_call_chain(&opp_table->head, OPP_EVENT_ENABLE,
++					     opp);
++	else
++		blocking_notifier_call_chain(&opp_table->head,
++					     OPP_EVENT_DISABLE, opp);
++
++	dev_pm_opp_put(opp);
++	goto put_table;
++
++unlock:
++	mutex_unlock(&opp_table->lock);
++put_table:
++	dev_pm_opp_put_opp_table(opp_table);
++	return r;
++}
++
++/**
++ * dev_pm_opp_enable() - Enable a specific OPP
++ * @dev:	device for which we do this operation
++ * @freq:	OPP frequency to enable
++ *
++ * Enables a provided opp. If the operation is valid, this returns 0, else the
++ * corresponding error value. It is meant to be used for users an OPP available
++ * after being temporarily made unavailable with dev_pm_opp_disable.
++ *
++ * Return: -EINVAL for bad pointers, -ENOMEM if no memory available for the
++ * copy operation, returns 0 if no modification was done OR modification was
++ * successful.
++ */
++int dev_pm_opp_enable(struct device *dev, unsigned long freq)
++{
++	return _opp_set_availability(dev, freq, true);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_enable);
++
++/**
++ * dev_pm_opp_disable() - Disable a specific OPP
++ * @dev:	device for which we do this operation
++ * @freq:	OPP frequency to disable
++ *
++ * Disables a provided opp. If the operation is valid, this returns
++ * 0, else the corresponding error value. It is meant to be a temporary
++ * control by users to make this OPP not available until the circumstances are
++ * right to make it available again (with a call to dev_pm_opp_enable).
++ *
++ * Return: -EINVAL for bad pointers, -ENOMEM if no memory available for the
++ * copy operation, returns 0 if no modification was done OR modification was
++ * successful.
++ */
++int dev_pm_opp_disable(struct device *dev, unsigned long freq)
++{
++	return _opp_set_availability(dev, freq, false);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_disable);
++
++/**
++ * dev_pm_opp_register_notifier() - Register OPP notifier for the device
++ * @dev:	Device for which notifier needs to be registered
++ * @nb:		Notifier block to be registered
++ *
++ * Return: 0 on success or a negative error value.
++ */
++int dev_pm_opp_register_notifier(struct device *dev, struct notifier_block *nb)
++{
++	struct opp_table *opp_table;
++	int ret;
++
++	opp_table = _find_opp_table(dev);
++	if (IS_ERR(opp_table))
++		return PTR_ERR(opp_table);
++
++	ret = blocking_notifier_chain_register(&opp_table->head, nb);
++
++	dev_pm_opp_put_opp_table(opp_table);
++
++	return ret;
++}
++EXPORT_SYMBOL(dev_pm_opp_register_notifier);
++
++/**
++ * dev_pm_opp_unregister_notifier() - Unregister OPP notifier for the device
++ * @dev:	Device for which notifier needs to be unregistered
++ * @nb:		Notifier block to be unregistered
++ *
++ * Return: 0 on success or a negative error value.
++ */
++int dev_pm_opp_unregister_notifier(struct device *dev,
++				   struct notifier_block *nb)
++{
++	struct opp_table *opp_table;
++	int ret;
++
++	opp_table = _find_opp_table(dev);
++	if (IS_ERR(opp_table))
++		return PTR_ERR(opp_table);
++
++	ret = blocking_notifier_chain_unregister(&opp_table->head, nb);
++
++	dev_pm_opp_put_opp_table(opp_table);
++
++	return ret;
++}
++EXPORT_SYMBOL(dev_pm_opp_unregister_notifier);
++
++void _dev_pm_opp_find_and_remove_table(struct device *dev)
++{
++	struct opp_table *opp_table;
++
++	/* Check for existing table for 'dev' */
++	opp_table = _find_opp_table(dev);
++	if (IS_ERR(opp_table)) {
++		int error = PTR_ERR(opp_table);
++
++		if (error != -ENODEV)
++			WARN(1, "%s: opp_table: %d\n",
++			     IS_ERR_OR_NULL(dev) ?
++					"Invalid device" : dev_name(dev),
++			     error);
++		return;
++	}
++
++	_put_opp_list_kref(opp_table);
++
++	/* Drop reference taken by _find_opp_table() */
++	dev_pm_opp_put_opp_table(opp_table);
++
++	/* Drop reference taken while the OPP table was added */
++	dev_pm_opp_put_opp_table(opp_table);
++}
++
++/**
++ * dev_pm_opp_remove_table() - Free all OPPs associated with the device
++ * @dev:	device pointer used to lookup OPP table.
++ *
++ * Free both OPPs created using static entries present in DT and the
++ * dynamically added entries.
++ */
++void dev_pm_opp_remove_table(struct device *dev)
++{
++	_dev_pm_opp_find_and_remove_table(dev);
++}
++EXPORT_SYMBOL_GPL(dev_pm_opp_remove_table);
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/phy/samsung/phy-exynos5-usbdrd.c ./drivers/phy/samsung/phy-exynos5-usbdrd.c
+--- ../ubuntu-eoan.orig/drivers/phy/samsung/phy-exynos5-usbdrd.c	2019-10-30 11:17:20.000000000 +1100
++++ ./drivers/phy/samsung/phy-exynos5-usbdrd.c	2019-11-13 18:20:18.724214055 +1100
+@@ -714,7 +714,9 @@
+ 	struct phy_usb_instance *inst = phy_get_drvdata(phy);
+ 	struct exynos5_usbdrd_phy *phy_drd = to_usbdrd_phy(inst);
+ 
+-	return exynos5420_usbdrd_phy_calibrate(phy_drd);
++	if (inst->phy_cfg->id == EXYNOS5_DRDPHY_UTMI)
++		return exynos5420_usbdrd_phy_calibrate(phy_drd);
++	return 0;
+ }
+ 
+ static const struct phy_ops exynos5_usbdrd_phy_ops = {
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/pinctrl/samsung/pinctrl-exynos.c ./drivers/pinctrl/samsung/pinctrl-exynos.c
+--- ../ubuntu-eoan.orig/drivers/pinctrl/samsung/pinctrl-exynos.c	2019-10-30 11:17:20.000000000 +1100
++++ ./drivers/pinctrl/samsung/pinctrl-exynos.c	2019-11-13 18:20:18.724214055 +1100
+@@ -504,6 +504,7 @@
+ 				bank->nr_pins, &exynos_eint_irqd_ops, bank);
+ 		if (!bank->irq_domain) {
+ 			dev_err(dev, "wkup irq domain add failed\n");
++			of_node_put(wkup_np);
+ 			return -ENXIO;
+ 		}
+ 
+@@ -518,8 +519,10 @@
+ 		weint_data = devm_kcalloc(dev,
+ 					  bank->nr_pins, sizeof(*weint_data),
+ 					  GFP_KERNEL);
+-		if (!weint_data)
++		if (!weint_data) {
++			of_node_put(wkup_np);
+ 			return -ENOMEM;
++		}
+ 
+ 		for (idx = 0; idx < bank->nr_pins; ++idx) {
+ 			irq = irq_of_parse_and_map(bank->of_node, idx);
+@@ -536,10 +539,13 @@
+ 		}
+ 	}
+ 
+-	if (!muxed_banks)
++	if (!muxed_banks) {
++		of_node_put(wkup_np);
+ 		return 0;
++	}
+ 
+ 	irq = irq_of_parse_and_map(wkup_np, 0);
++	of_node_put(wkup_np);
+ 	if (!irq) {
+ 		dev_err(dev, "irq number for muxed EINTs not found\n");
+ 		return 0;
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/pinctrl/samsung/pinctrl-s3c24xx.c ./drivers/pinctrl/samsung/pinctrl-s3c24xx.c
+--- ../ubuntu-eoan.orig/drivers/pinctrl/samsung/pinctrl-s3c24xx.c	2019-10-30 11:17:20.000000000 +1100
++++ ./drivers/pinctrl/samsung/pinctrl-s3c24xx.c	2019-11-13 18:20:18.724214055 +1100
+@@ -490,8 +490,10 @@
+ 		return -ENODEV;
+ 
+ 	eint_data = devm_kzalloc(dev, sizeof(*eint_data), GFP_KERNEL);
+-	if (!eint_data)
++	if (!eint_data) {
++		of_node_put(eint_np);
+ 		return -ENOMEM;
++	}
+ 
+ 	eint_data->drvdata = d;
+ 
+@@ -503,12 +505,14 @@
+ 		irq = irq_of_parse_and_map(eint_np, i);
+ 		if (!irq) {
+ 			dev_err(dev, "failed to get wakeup EINT IRQ %d\n", i);
++			of_node_put(eint_np);
+ 			return -ENXIO;
+ 		}
+ 
+ 		eint_data->parents[i] = irq;
+ 		irq_set_chained_handler_and_data(irq, handlers[i], eint_data);
+ 	}
++	of_node_put(eint_np);
+ 
+ 	bank = d->pin_banks;
+ 	for (i = 0; i < d->nr_banks; ++i, ++bank) {
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/pinctrl/samsung/pinctrl-s3c64xx.c ./drivers/pinctrl/samsung/pinctrl-s3c64xx.c
+--- ../ubuntu-eoan.orig/drivers/pinctrl/samsung/pinctrl-s3c64xx.c	2019-10-30 11:17:20.000000000 +1100
++++ ./drivers/pinctrl/samsung/pinctrl-s3c64xx.c	2019-11-13 18:20:18.724214055 +1100
+@@ -704,8 +704,10 @@
+ 		return -ENODEV;
+ 
+ 	data = devm_kzalloc(dev, sizeof(*data), GFP_KERNEL);
+-	if (!data)
++	if (!data) {
++		of_node_put(eint0_np);
+ 		return -ENOMEM;
++	}
+ 	data->drvdata = d;
+ 
+ 	for (i = 0; i < NUM_EINT0_IRQ; ++i) {
+@@ -714,6 +716,7 @@
+ 		irq = irq_of_parse_and_map(eint0_np, i);
+ 		if (!irq) {
+ 			dev_err(dev, "failed to get wakeup EINT IRQ %d\n", i);
++			of_node_put(eint0_np);
+ 			return -ENXIO;
+ 		}
+ 
+@@ -721,6 +724,7 @@
+ 						 s3c64xx_eint0_handlers[i],
+ 						 data);
+ 	}
++	of_node_put(eint0_np);
+ 
+ 	bank = d->pin_banks;
+ 	for (i = 0; i < d->nr_banks; ++i, ++bank) {
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/pinctrl/samsung/pinctrl-samsung.c ./drivers/pinctrl/samsung/pinctrl-samsung.c
+--- ../ubuntu-eoan.orig/drivers/pinctrl/samsung/pinctrl-samsung.c	2019-10-30 11:17:20.000000000 +1100
++++ ./drivers/pinctrl/samsung/pinctrl-samsung.c	2019-11-13 18:20:18.724214055 +1100
+@@ -272,6 +272,7 @@
+ 						&reserved_maps, num_maps);
+ 		if (ret < 0) {
+ 			samsung_dt_free_map(pctldev, *map, *num_maps);
++			of_node_put(np);
+ 			return ret;
+ 		}
+ 	}
+@@ -785,8 +786,10 @@
+ 		if (!of_get_child_count(cfg_np)) {
+ 			ret = samsung_pinctrl_create_function(dev, drvdata,
+ 							cfg_np, func);
+-			if (ret < 0)
++			if (ret < 0) {
++				of_node_put(cfg_np);
+ 				return ERR_PTR(ret);
++			}
+ 			if (ret > 0) {
+ 				++func;
+ 				++func_cnt;
+@@ -797,8 +800,11 @@
+ 		for_each_child_of_node(cfg_np, func_np) {
+ 			ret = samsung_pinctrl_create_function(dev, drvdata,
+ 						func_np, func);
+-			if (ret < 0)
++			if (ret < 0) {
++				of_node_put(func_np);
++				of_node_put(cfg_np);
+ 				return ERR_PTR(ret);
++			}
+ 			if (ret > 0) {
+ 				++func;
+ 				++func_cnt;
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/soc/samsung/exynos5422-asv.c ./drivers/soc/samsung/exynos5422-asv.c
+--- ../ubuntu-eoan.orig/drivers/soc/samsung/exynos5422-asv.c	1970-01-01 10:00:00.000000000 +1000
++++ ./drivers/soc/samsung/exynos5422-asv.c	2019-11-13 18:20:18.724214055 +1100
+@@ -0,0 +1,509 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (c) 2019 Samsung Electronics Co., Ltd.
++ *	      http://www.samsung.com/
++ *
++ * Samsung Exynos 5422 SoC Adaptive Supply Voltage support
++ */
++
++#include <linux/bitrev.h>
++#include <linux/device.h>
++#include <linux/errno.h>
++#include <linux/of.h>
++#include <linux/regmap.h>
++#include <linux/soc/samsung/exynos-chipid.h>
++#include <linux/slab.h>
++
++#include "exynos-asv.h"
++
++#define ASV_GROUPS_NUM		14
++#define ASV_ARM_DVFS_NUM	20
++#define ASV_ARM_BIN2_DVFS_NUM	17
++#define ASV_KFC_DVFS_NUM	14
++#define ASV_KFC_BIN2_DVFS_NUM	12
++
++/*
++ * This array is a set of 4 ASV data tables, first column of each ASV table
++ * contains frequency value in MHz and subsequent columns contain the CPU
++ * cluster's supply voltage values in uV.
++ * In order to create a set of OPPs for specific SoC revision one of the voltage
++ * columns (1...14) from one of the tables (0...3) is selected during
++ * initialization. There are separate ASV tables for the big (ARM) and little
++ * (KFC) CPU cluster. Only OPPs which are already defined in devicetree
++ * will be updated.
++ */
++
++static const u32 asv_arm_table[][ASV_ARM_DVFS_NUM][ASV_GROUPS_NUM + 1] = {
++{
++	/* ARM 0, 1 */
++	{ 2100,    1362500, 1362500, 1350000, 1337500, 1325000, 1312500, 1300000,
++	  1275000, 1262500, 1250000, 1237500, 1225000, 1212500, 1200000 },
++	{ 2000,    1312500, 1312500, 1300000, 1287500, 1275000, 1262500, 1250000,
++	  1237500, 1225000, 1237500, 1225000, 1212500, 1200000, 1187500 },
++	{ 1900,    1250000, 1237500, 1225000, 1212500, 1200000, 1187500, 1175000,
++	  1162500, 1150000, 1162500, 1150000, 1137500, 1125000, 1112500 },
++	{ 1800,    1200000, 1187500, 1175000, 1162500, 1150000, 1137500, 1125000,
++	  1112500, 1100000, 1112500, 1100000, 1087500, 1075000, 1062500 },
++	{ 1700,    1162500, 1150000, 1137500, 1125000, 1112500, 1100000, 1087500,
++	  1075000, 1062500, 1075000, 1062500, 1050000, 1037500, 1025000 },
++	{ 1600,    1125000, 1112500, 1100000, 1087500, 1075000, 1062500, 1050000,
++	  1037500, 1025000, 1037500, 1025000, 1012500, 1000000, 987500 },
++	{ 1500,    1087500, 1075000, 1062500, 1050000, 1037500, 1025000, 1012500,
++	  1000000, 987500,  1000000, 987500,  975000,  962500,  950000 },
++	{ 1400,    1062500, 1050000, 1037500, 1025000, 1012500, 1000000, 987500,
++	  975000,  962500,  975000,  962500,  950000,  937500,  925000 },
++	{ 1300,    1050000, 1037500, 1025000, 1012500, 1000000, 987500,  975000,
++	  962500,  950000,  962500,  950000,  937500,  925000,  912500 },
++	{ 1200,    1025000, 1012500, 1000000, 987500,  975000,  962500,  950000,
++	  937500,  925000,  937500,  925000,  912500,  900000,  900000 },
++	{ 1100,    1000000, 987500,  975000,  962500,  950000,  937500,  925000,
++	  912500,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 1000,    975000,  962500,  950000,  937500,  925000,  912500,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 900,     950000,  937500,  925000,  912500,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 800,     925000,  912500,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 700,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 600,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 500,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 400,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 300,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 200,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++}, {
++	/* ARM 2 */
++	{ 2100,    1362500, 1362500, 1350000, 1337500, 1325000, 1312500, 1300000,
++	  1275000, 1262500, 1250000, 1237500, 1225000, 1212500, 1200000 },
++	{ 2000,    1312500, 1312500, 1312500, 1300000, 1275000, 1262500, 1250000,
++	  1237500, 1225000, 1237500, 1225000, 1212500, 1200000, 1187500 },
++	{ 1900,    1262500, 1250000, 1250000, 1237500, 1212500, 1200000, 1187500,
++	  1175000, 1162500, 1175000, 1162500, 1150000, 1137500, 1125000 },
++	{ 1800,    1212500, 1200000, 1187500, 1175000, 1162500, 1150000, 1137500,
++	  1125000, 1112500, 1125000, 1112500, 1100000, 1087500, 1075000 },
++	{ 1700,    1175000, 1162500, 1150000, 1137500, 1125000, 1112500, 1100000,
++	  1087500, 1075000, 1087500, 1075000, 1062500, 1050000, 1037500 },
++	{ 1600,    1137500, 1125000, 1112500, 1100000, 1087500, 1075000, 1062500,
++	  1050000, 1037500, 1050000, 1037500, 1025000, 1012500, 1000000 },
++	{ 1500,    1100000, 1087500, 1075000, 1062500, 1050000, 1037500, 1025000,
++	  1012500, 1000000, 1012500, 1000000, 987500,  975000,  962500 },
++	{ 1400,    1075000, 1062500, 1050000, 1037500, 1025000, 1012500, 1000000,
++	  987500,  975000,  987500,  975000,  962500,  950000,  937500 },
++	{ 1300,    1050000, 1037500, 1025000, 1012500, 1000000, 987500,  975000,
++	  962500,  950000,  962500,  950000,  937500,  925000,  912500 },
++	{ 1200,    1025000, 1012500, 1000000, 987500,  975000,  962500,  950000,
++	  937500,  925000,  937500,  925000,  912500,  900000,  900000 },
++	{ 1100,    1000000, 987500,  975000,  962500,  950000,  937500,  925000,
++	  912500,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 1000,    975000,  962500,  950000,  937500,  925000,  912500,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 900,     950000,  937500,  925000,  912500,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 800,     925000,  912500,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 700,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 600,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 500,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 400,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 300,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 200,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++}, {
++	/* ARM 3 */
++	{ 2100,    1362500, 1362500, 1350000, 1337500, 1325000, 1312500, 1300000,
++	  1275000, 1262500, 1250000, 1237500, 1225000, 1212500, 1200000 },
++	{ 2000,    1312500, 1312500, 1300000, 1287500, 1275000, 1262500, 1250000,
++	  1237500, 1225000, 1237500, 1225000, 1212500, 1200000, 1187500 },
++	{ 1900,    1262500, 1250000, 1237500, 1225000, 1212500, 1200000, 1187500,
++	  1175000, 1162500, 1175000, 1162500, 1150000, 1137500, 1125000 },
++	{ 1800,    1212500, 1200000, 1187500, 1175000, 1162500, 1150000, 1137500,
++	  1125000, 1112500, 1125000, 1112500, 1100000, 1087500, 1075000 },
++	{ 1700,    1175000, 1162500, 1150000, 1137500, 1125000, 1112500, 1100000,
++	  1087500, 1075000, 1087500, 1075000, 1062500, 1050000, 1037500 },
++	{ 1600,    1137500, 1125000, 1112500, 1100000, 1087500, 1075000, 1062500,
++	  1050000, 1037500, 1050000, 1037500, 1025000, 1012500, 1000000 },
++	{ 1500,    1100000, 1087500, 1075000, 1062500, 1050000, 1037500, 1025000,
++	  1012500, 1000000, 1012500, 1000000, 987500,  975000,  962500 },
++	{ 1400,    1075000, 1062500, 1050000, 1037500, 1025000, 1012500, 1000000,
++	  987500,  975000,  987500,  975000,  962500,  950000,  937500 },
++	{ 1300,    1050000, 1037500, 1025000, 1012500, 1000000, 987500,  975000,
++	  962500,  950000,  962500,  950000,  937500,  925000,  912500 },
++	{ 1200,    1025000, 1012500, 1000000, 987500,  975000,  962500,  950000,
++	  937500,  925000,  937500,  925000,  912500,  900000,  900000 },
++	{ 1100,    1000000, 987500,  975000,  962500,  950000,  937500,  925000,
++	  912500,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 1000,    975000,  962500,  950000,  937500,  925000,  912500,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 900,     950000,  937500,  925000,  912500,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 800,     925000,  912500,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 700,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 600,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 500,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 400,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 300,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 200,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++}, {
++	/* ARM bin 2 */
++	{ 1800,    1237500, 1225000, 1212500, 1200000, 1187500, 1175000, 1162500,
++	  1150000, 1137500, 1150000, 1137500, 1125000, 1112500, 1100000 },
++	{ 1700,    1200000, 1187500, 1175000, 1162500, 1150000, 1137500, 1125000,
++	  1112500, 1100000, 1112500, 1100000, 1087500, 1075000, 1062500 },
++	{ 1600,    1162500, 1150000, 1137500, 1125000, 1112500, 1100000, 1087500,
++	  1075000, 1062500, 1075000, 1062500, 1050000, 1037500, 1025000 },
++	{ 1500,    1125000, 1112500, 1100000, 1087500, 1075000, 1062500, 1050000,
++	  1037500, 1025000, 1037500, 1025000, 1012500, 1000000, 987500 },
++	{ 1400,    1100000, 1087500, 1075000, 1062500, 1050000, 1037500, 1025000,
++	  1012500, 1000000, 1012500, 1000000, 987500,  975000,  962500 },
++	{ 1300,    1087500, 1075000, 1062500, 1050000, 1037500, 1025000, 1012500,
++	  1000000, 987500,  1000000, 987500,  975000,  962500,  950000 },
++	{ 1200,    1062500, 1050000, 1037500, 1025000, 1012500, 1000000, 987500,
++	  975000,  962500,  975000,  962500,  950000,  937500,  925000 },
++	{ 1100,    1037500, 1025000, 1012500, 1000000, 987500,  975000,  962500,
++	  950000,  937500,  950000,  937500,  925000,  912500,  900000 },
++	{ 1000,    1012500, 1000000, 987500,  975000,  962500,  950000,  937500,
++	  925000,  912500,  925000,  912500,  900000,  900000,  900000 },
++	{ 900,     987500,  975000,  962500,  950000,  937500,  925000,  912500,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 800,     962500,  950000,  937500,  925000,  912500,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 700,     937500,  925000,  912500,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 600,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 500,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 400,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 300,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 200,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++}
++};
++
++static const u32 asv_kfc_table[][ASV_KFC_DVFS_NUM][ASV_GROUPS_NUM + 1] = {
++{
++	/* KFC 0, 1 */
++	{ 1500000, 1300000, 1300000, 1300000, 1287500, 1287500, 1287500, 1275000,
++	  1262500, 1250000, 1237500, 1225000, 1212500, 1200000, 1187500 },
++	{ 1400000, 1275000, 1262500, 1250000, 1237500, 1225000, 1212500, 1200000,
++	  1187500, 1175000, 1162500, 1150000, 1137500, 1125000, 1112500 },
++	{ 1300000, 1225000, 1212500, 1200000, 1187500, 1175000, 1162500, 1150000,
++	  1137500, 1125000, 1112500, 1100000, 1087500, 1075000, 1062500 },
++	{ 1200000, 1175000, 1162500, 1150000, 1137500, 1125000, 1112500, 1100000,
++	  1087500, 1075000, 1062500, 1050000, 1037500, 1025000, 1012500 },
++	{ 1100000, 1137500, 1125000, 1112500, 1100000, 1087500, 1075000, 1062500,
++	  1050000, 1037500, 1025000, 1012500, 1000000, 987500,  975000 },
++	{ 1000000, 1100000, 1087500, 1075000, 1062500, 1050000, 1037500, 1025000,
++	  1012500, 1000000, 987500,  975000,  962500,  950000,  937500 },
++	{ 900000,  1062500, 1050000, 1037500, 1025000, 1012500, 1000000, 987500,
++	  975000,  962500,  950000,  937500,  925000,  912500,  900000 },
++	{ 800000,  1025000, 1012500, 1000000, 987500,  975000,  962500,  950000,
++	  937500,  925000,  912500,  900000,  900000,  900000,  900000 },
++	{ 700000,  987500,  975000,  962500,  950000,  937500,  925000,  912500,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 600000,  950000,  937500,  925000,  912500,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 500000,  912500,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 400000,  900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 300000,  900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 200000,  900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++}, {
++	/* KFC 2 */
++	{ 1500,    1300000, 1300000, 1300000, 1287500, 1287500, 1287500, 1275000,
++	  1262500, 1250000, 1237500, 1225000, 1212500, 1200000, 1187500 },
++	{ 1400,    1275000, 1262500, 1250000, 1237500, 1225000, 1212500, 1200000,
++	  1187500, 1175000, 1162500, 1150000, 1137500, 1125000, 1112500 },
++	{ 1300,    1225000, 1212500, 1200000, 1187500, 1175000, 1162500, 1150000,
++	  1137500, 1125000, 1112500, 1100000, 1087500, 1075000, 1062500 },
++	{ 1200,    1175000, 1162500, 1150000, 1137500, 1125000, 1112500, 1100000,
++	  1087500, 1075000, 1062500, 1050000, 1037500, 1025000, 1012500 },
++	{ 1100,    1137500, 1125000, 1112500, 1100000, 1087500, 1075000, 1062500,
++	  1050000, 1037500, 1025000, 1012500, 1000000, 987500,  975000 },
++	{ 1000,    1100000, 1087500, 1075000, 1062500, 1050000, 1037500, 1025000,
++	  1012500, 1000000, 987500,  975000,  962500,  950000,  937500 },
++	{ 900,     1062500, 1050000, 1037500, 1025000, 1012500, 1000000, 987500,
++	  975000,  962500,  950000,  937500,  925000,  912500,  900000 },
++	{ 800,     1025000, 1012500, 1000000, 987500,  975000,  962500,  950000,
++	  937500,  925000,  912500,  900000,  900000,  900000,  900000 },
++	{ 700,     987500,  975000,  962500,  950000,  937500,  925000,  912500,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 600,     950000,  937500,  925000,  912500,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 500,     912500,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 400,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 300,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 200,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++}, {
++	/* KFC 3 */
++	{ 1500,    1300000, 1300000, 1300000, 1287500, 1287500, 1287500, 1275000,
++	  1262500, 1250000, 1237500, 1225000, 1212500, 1200000, 1187500 },
++	{ 1400,    1275000, 1262500, 1250000, 1237500, 1225000, 1212500, 1200000,
++	  1187500, 1175000, 1162500, 1150000, 1137500, 1125000, 1112500 },
++	{ 1300,    1225000, 1212500, 1200000, 1187500, 1175000, 1162500, 1150000,
++	  1137500, 1125000, 1112500, 1100000, 1087500, 1075000, 1062500 },
++	{ 1200,    1175000, 1162500, 1150000, 1137500, 1125000, 1112500, 1100000,
++	  1087500, 1075000, 1062500, 1050000, 1037500, 1025000, 1012500 },
++	{ 1100,    1137500, 1125000, 1112500, 1100000, 1087500, 1075000, 1062500,
++	  1050000, 1037500, 1025000, 1012500, 1000000, 987500,  975000 },
++	{ 1000,    1100000, 1087500, 1075000, 1062500, 1050000, 1037500, 1025000,
++	  1012500, 1000000, 987500,  975000,  962500,  950000,  937500 },
++	{ 900,     1062500, 1050000, 1037500, 1025000, 1012500, 1000000, 987500,
++	  975000,  962500,  950000,  937500,  925000,  912500,  900000 },
++	{ 800,     1025000, 1012500, 1000000, 987500,  975000,  962500,  950000,
++	  937500,  925000,  912500,  900000,  900000,  900000,  900000 },
++	{ 700,     987500,  975000,  962500,  950000,  937500,  925000,  912500,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 600,     950000,  937500,  925000,  912500,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 500,     912500,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 400,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 300,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 200,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++}, {
++	/* KFC bin 2 */
++	{ 1300,    1250000, 1237500, 1225000, 1212500, 1200000, 1187500, 1175000,
++	  1162500, 1150000, 1137500, 1125000, 1112500, 1100000, 1087500 },
++	{ 1200,    1200000, 1187500, 1175000, 1162500, 1150000, 1137500, 1125000,
++	  1112500, 1100000, 1087500, 1075000, 1062500, 1050000, 1037500 },
++	{ 1100,    1162500, 1150000, 1137500, 1125000, 1112500, 1100000, 1087500,
++	  1075000, 1062500, 1050000, 1037500, 1025000, 1012500, 1000000 },
++	{ 1000,    1125000, 1112500, 1100000, 1087500, 1075000, 1062500, 1050000,
++	  1037500, 1025000, 1012500, 1000000, 987500,  975000,  962500 },
++	{ 900,     1087500, 1075000, 1062500, 1050000, 1037500, 1025000, 1012500,
++	  1000000, 987500,  975000,  962500,  950000,  937500,  925000 },
++	{ 800,     1050000, 1037500, 1025000, 1012500, 1000000, 987500,  975000,
++	  962500,  950000,  937500,  925000,  912500,  900000,  900000 },
++	{ 700,     1012500, 1000000, 987500,  975000,  962500,  950000,  937500,
++	  925000,  912500,  900000,  900000,  900000,  900000,  900000 },
++	{ 600,     975000,  962500,  950000,  937500,  925000,  912500,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 500,     937500,  925000,  912500,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 400,     925000,  912500,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 300,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++	{ 200,     900000,  900000,  900000,  900000,  900000,  900000,  900000,
++	  900000,  900000,  900000,  900000,  900000,  900000,  900000 },
++}
++};
++
++static const struct asv_limit_entry __asv_limits[ASV_GROUPS_NUM] = {
++	{ 13, 55 },
++	{ 21, 65 },
++	{ 25, 69 },
++	{ 30, 72 },
++	{ 36, 74 },
++	{ 43, 76 },
++	{ 51, 78 },
++	{ 65, 80 },
++	{ 81, 82 },
++	{ 98, 84 },
++	{ 119, 87 },
++	{ 135, 89 },
++	{ 150, 92 },
++	{ 999, 999 },
++};
++
++static int exynos5422_asv_get_group(struct exynos_asv *asv)
++{
++	unsigned int pkgid_reg, auxi_reg;
++	int hpm, ids, i;
++
++	regmap_read(asv->chipid_regmap, EXYNOS_CHIPID_REG_PKG_ID, &pkgid_reg);
++	regmap_read(asv->chipid_regmap, EXYNOS_CHIPID_REG_AUX_INFO, &auxi_reg);
++
++	if (asv->use_sg) {
++		u32 sga = (pkgid_reg >> EXYNOS5422_SG_A_OFFSET) &
++			   EXYNOS5422_SG_A_MASK;
++
++		u32 sgb = (pkgid_reg >> EXYNOS5422_SG_B_OFFSET) &
++			   EXYNOS5422_SG_B_MASK;
++
++		if ((pkgid_reg >> EXYNOS5422_SG_BSIGN_OFFSET) &
++		     EXYNOS5422_SG_BSIGN_MASK)
++			return sga + sgb;
++		else
++			return sga - sgb;
++	}
++
++	hpm = (auxi_reg >> EXYNOS5422_TMCB_OFFSET) & EXYNOS5422_TMCB_MASK;
++	ids = (pkgid_reg >> EXYNOS5422_IDS_OFFSET) & EXYNOS5422_IDS_MASK;
++
++	for (i = 0; i < ASV_GROUPS_NUM; i++) {
++		if (ids <= __asv_limits[i].ids)
++			break;
++		if (hpm <= __asv_limits[i].hpm)
++			break;
++	}
++	if (i < ASV_GROUPS_NUM)
++		return i;
++
++	return 0;
++}
++
++static int __asv_offset_voltage(unsigned int index)
++{
++	switch (index) {
++	case 1:
++		return 12500;
++	case 2:
++		return 50000;
++	case 3:
++		return 25000;
++	default:
++		return 0;
++	};
++}
++
++static void exynos5422_asv_offset_voltage_setup(struct exynos_asv *asv)
++{
++	struct exynos_asv_subsys *subsys;
++	unsigned int reg, value;
++
++	regmap_read(asv->chipid_regmap, EXYNOS_CHIPID_REG_AUX_INFO, &reg);
++
++	/* ARM offset voltage setup */
++	subsys = &asv->subsys[EXYNOS_ASV_SUBSYS_ID_ARM];
++
++	subsys->base_volt = 1000000;
++
++	value = (reg >> EXYNOS5422_ARM_UP_OFFSET) & EXYNOS5422_ARM_UP_MASK;
++	subsys->offset_volt_h = __asv_offset_voltage(value);
++
++	value = (reg >> EXYNOS5422_ARM_DN_OFFSET) & EXYNOS5422_ARM_DN_MASK;
++	subsys->offset_volt_l = __asv_offset_voltage(value);
++
++	/* KFC offset voltage setup */
++	subsys = &asv->subsys[EXYNOS_ASV_SUBSYS_ID_KFC];
++
++	subsys->base_volt = 1000000;
++
++	value = (reg >> EXYNOS5422_KFC_UP_OFFSET) & EXYNOS5422_KFC_UP_MASK;
++	subsys->offset_volt_h = __asv_offset_voltage(value);
++
++	value = (reg >> EXYNOS5422_KFC_DN_OFFSET) & EXYNOS5422_KFC_DN_MASK;
++	subsys->offset_volt_l = __asv_offset_voltage(value);
++}
++
++static int exynos5422_asv_opp_get_voltage(struct exynos_asv_subsys *subsys,
++				int level, unsigned int volt)
++{
++	unsigned int asv_volt;
++
++	if (level >= subsys->table.num_rows)
++		return volt;
++
++	asv_volt = exynos_asv_opp_get_voltage(subsys, level,
++					      subsys->asv->group);
++
++	if (volt > subsys->base_volt)
++		asv_volt += subsys->offset_volt_h;
++	else
++		asv_volt += subsys->offset_volt_l;
++
++	return asv_volt;
++}
++
++static unsigned int exynos5422_asv_parse_table(struct exynos_asv *asv,
++				      unsigned int pkg_id)
++{
++	return (pkg_id >> EXYNOS5422_TABLE_OFFSET) & EXYNOS5422_TABLE_MASK;
++}
++
++static bool exynos5422_asv_parse_bin2(struct exynos_asv *asv,
++				     unsigned int pkg_id)
++{
++	return (pkg_id >> EXYNOS5422_BIN2_OFFSET) & EXYNOS5422_BIN2_MASK;
++}
++
++static bool exynos5422_asv_parse_sg(struct exynos_asv *asv,
++					unsigned int pkg_id)
++{
++	return (pkg_id >> EXYNOS5422_USESG_OFFSET) & EXYNOS5422_USESG_MASK;
++}
++
++int exynos5422_asv_init(struct exynos_asv *asv)
++{
++	struct exynos_asv_subsys *subsys;
++	unsigned int table_index;
++	unsigned int pkg_id;
++	bool bin2;
++
++	regmap_read(asv->chipid_regmap, EXYNOS_CHIPID_REG_PKG_ID, &pkg_id);
++
++	if (asv->of_bin == 2) {
++		bin2 = true;
++		asv->use_sg = false;
++	} else {
++		asv->use_sg = exynos5422_asv_parse_sg(asv, pkg_id);
++		bin2 = exynos5422_asv_parse_bin2(asv, pkg_id);
++	}
++
++	asv->group = exynos5422_asv_get_group(asv);
++	asv->table = exynos5422_asv_parse_table(asv, pkg_id);
++
++	exynos5422_asv_offset_voltage_setup(asv);
++
++	if (bin2) {
++		table_index = 3;
++	} else {
++		if (asv->table == 2 || asv->table == 3)
++			table_index = asv->table - 1;
++		else
++			table_index = 0;
++	}
++
++	subsys = &asv->subsys[EXYNOS_ASV_SUBSYS_ID_ARM];
++	subsys->cpu_dt_compat = "arm,cortex-a15";
++	if (bin2)
++		subsys->table.num_rows = ASV_ARM_BIN2_DVFS_NUM;
++	else
++		subsys->table.num_rows = ASV_ARM_DVFS_NUM;
++	subsys->table.num_cols = ASV_GROUPS_NUM + 1;
++	subsys->table.buf = (u32 *)asv_arm_table[table_index];
++
++	subsys = &asv->subsys[EXYNOS_ASV_SUBSYS_ID_KFC];
++	subsys->cpu_dt_compat = "arm,cortex-a7";
++	if (bin2)
++		subsys->table.num_rows = ASV_KFC_BIN2_DVFS_NUM;
++	else
++		subsys->table.num_rows = ASV_KFC_DVFS_NUM;
++	subsys->table.num_cols = ASV_GROUPS_NUM + 1;
++	subsys->table.buf = (u32 *)asv_kfc_table[table_index];
++
++	asv->opp_get_voltage = exynos5422_asv_opp_get_voltage;
++
++	return 0;
++}
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/soc/samsung/exynos5422-asv.h ./drivers/soc/samsung/exynos5422-asv.h
+--- ../ubuntu-eoan.orig/drivers/soc/samsung/exynos5422-asv.h	1970-01-01 10:00:00.000000000 +1000
++++ ./drivers/soc/samsung/exynos5422-asv.h	2019-11-13 18:20:18.724214055 +1100
+@@ -0,0 +1,25 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (c) 2019 Samsung Electronics Co., Ltd.
++ *	      http://www.samsung.com/
++ *
++ * Samsung Exynos 5422 SoC Adaptive Supply Voltage support
++ */
++
++#ifndef __LINUX_SOC_EXYNOS5422_ASV_H
++#define __LINUX_SOC_EXYNOS5422_ASV_H
++
++#include <linux/errno.h>
++
++struct exynos_asv;
++
++#ifdef CONFIG_EXYNOS_ASV_ARM
++int exynos5422_asv_init(struct exynos_asv *asv);
++#else
++static inline int exynos5422_asv_init(struct exynos_asv *asv)
++{
++	return -ENOTSUPP;
++}
++#endif
++
++#endif /* __LINUX_SOC_EXYNOS5422_ASV_H */
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/soc/samsung/exynos-asv.c ./drivers/soc/samsung/exynos-asv.c
+--- ../ubuntu-eoan.orig/drivers/soc/samsung/exynos-asv.c	1970-01-01 10:00:00.000000000 +1000
++++ ./drivers/soc/samsung/exynos-asv.c	2019-11-13 18:20:18.724214055 +1100
+@@ -0,0 +1,179 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (c) 2019 Samsung Electronics Co., Ltd.
++ *	      http://www.samsung.com/
++ * Author: Sylwester Nawrocki <s.nawrocki@samsung.com>
++ *
++ * Samsung Exynos SoC Adaptive Supply Voltage support
++ */
++
++#include <linux/cpu.h>
++#include <linux/delay.h>
++#include <linux/device.h>
++#include <linux/errno.h>
++#include <linux/init.h>
++#include <linux/mfd/syscon.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_device.h>
++#include <linux/platform_device.h>
++#include <linux/pm_opp.h>
++#include <linux/regmap.h>
++#include <linux/soc/samsung/exynos-chipid.h>
++
++#include "exynos-asv.h"
++#include "exynos5422-asv.h"
++
++#define MHZ 1000000U
++
++static int exynos_asv_update_cpu_opps(struct exynos_asv *asv,
++				      struct device *cpu)
++{
++	struct exynos_asv_subsys *subsys = NULL;
++	struct dev_pm_opp *opp;
++	unsigned int opp_freq;
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(asv->subsys); i++) {
++		if (of_device_is_compatible(cpu->of_node,
++					    asv->subsys[i].cpu_dt_compat)) {
++			subsys = &asv->subsys[i];
++			break;
++		}
++	}
++	if (!subsys)
++		return -EINVAL;
++
++	for (i = 0; i < subsys->table.num_rows; i++) {
++		unsigned int new_volt, volt;
++		int ret;
++
++		opp_freq = exynos_asv_opp_get_frequency(subsys, i);
++
++		opp = dev_pm_opp_find_freq_exact(cpu, opp_freq * MHZ, true);
++		if (IS_ERR(opp)) {
++			dev_info(asv->dev, "cpu%d opp%d, freq: %u missing\n",
++				 cpu->id, i, opp_freq);
++
++			continue;
++		}
++
++		volt = dev_pm_opp_get_voltage(opp);
++		new_volt = asv->opp_get_voltage(subsys, i, volt);
++		dev_pm_opp_put(opp);
++
++		if (new_volt == volt)
++			continue;
++
++		ret = dev_pm_opp_adjust_voltage(cpu, opp_freq * MHZ,
++						new_volt, new_volt, new_volt);
++		if (ret < 0)
++			dev_err(asv->dev,
++				"Failed to adjust OPP %u Hz/%u uV for cpu%d\n",
++				opp_freq, new_volt, cpu->id);
++		else
++			dev_dbg(asv->dev,
++				"Adjusted OPP %u Hz/%u -> %u uV, cpu%d\n",
++				opp_freq, volt, new_volt, cpu->id);
++	}
++
++	return 0;
++}
++
++static int exynos_asv_update_opps(struct exynos_asv *asv)
++{
++	struct opp_table *last_opp_table = NULL;
++	struct device *cpu;
++	int ret, cpuid;
++
++	for_each_possible_cpu(cpuid) {
++		struct opp_table *opp_table;
++
++		cpu = get_cpu_device(cpuid);
++		if (!cpu)
++			continue;
++
++		opp_table = dev_pm_opp_get_opp_table(cpu);
++		if (IS_ERR(opp_table))
++			continue;
++
++		if (!last_opp_table || opp_table != last_opp_table) {
++			last_opp_table = opp_table;
++
++			ret = exynos_asv_update_cpu_opps(asv, cpu);
++			if (ret < 0)
++				dev_err(asv->dev, "Couldn't udate OPPs for cpu%d\n",
++					cpuid);
++		}
++
++		dev_pm_opp_put_opp_table(opp_table);
++	}
++
++	return	0;
++}
++
++static int exynos_asv_probe(struct platform_device *pdev)
++{
++	int (*probe_func)(struct exynos_asv *asv);
++	struct exynos_asv *asv;
++	struct device *cpu_dev;
++	u32 product_id = 0;
++	int ret, i;
++
++	cpu_dev = get_cpu_device(0);
++	ret = dev_pm_opp_get_opp_count(cpu_dev);
++	if (ret < 0)
++		return -EPROBE_DEFER;
++
++	asv = devm_kzalloc(&pdev->dev, sizeof(*asv), GFP_KERNEL);
++	if (!asv)
++		return -ENOMEM;
++
++	asv->chipid_regmap = syscon_node_to_regmap(pdev->dev.of_node);
++	if (IS_ERR(asv->chipid_regmap)) {
++		dev_err(&pdev->dev, "Could not find syscon regmap\n");
++		return PTR_ERR(asv->chipid_regmap);
++	}
++
++	regmap_read(asv->chipid_regmap, EXYNOS_CHIPID_REG_PRO_ID, &product_id);
++
++	switch (product_id & EXYNOS_MASK) {
++	case 0xE5422000:
++		probe_func = exynos5422_asv_init;
++		break;
++	default:
++		dev_err(&pdev->dev, "Unsupported product ID: %#x", product_id);
++		return -ENODEV;
++	}
++
++	ret = of_property_read_u32(pdev->dev.of_node, "samsung,asv-bin",
++				   &asv->of_bin);
++	if (ret < 0)
++		asv->of_bin = -EINVAL;
++
++	asv->dev = &pdev->dev;
++	dev_set_drvdata(&pdev->dev, asv);
++
++	for (i = 0; i < ARRAY_SIZE(asv->subsys); i++)
++		asv->subsys[i].asv = asv;
++
++	ret = probe_func(asv);
++	if (ret < 0)
++		return ret;
++
++	return exynos_asv_update_opps(asv);
++}
++
++static const struct of_device_id exynos_asv_of_device_ids[] = {
++	{ .compatible = "samsung,exynos4210-chipid" },
++	{}
++};
++
++static struct platform_driver exynos_asv_driver = {
++	.driver = {
++		.name = "exynos-asv",
++		.of_match_table = exynos_asv_of_device_ids,
++	},
++	.probe	= exynos_asv_probe,
++};
++module_platform_driver(exynos_asv_driver);
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/soc/samsung/exynos-asv.h ./drivers/soc/samsung/exynos-asv.h
+--- ../ubuntu-eoan.orig/drivers/soc/samsung/exynos-asv.h	1970-01-01 10:00:00.000000000 +1000
++++ ./drivers/soc/samsung/exynos-asv.h	2019-11-13 18:20:18.724214055 +1100
+@@ -0,0 +1,82 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (c) 2019 Samsung Electronics Co., Ltd.
++ *	      http://www.samsung.com/
++ * Author: Sylwester Nawrocki <s.nawrocki@samsung.com>
++ *
++ * Samsung Exynos SoC Adaptive Supply Voltage support
++ */
++#ifndef __LINUX_SOC_EXYNOS_ASV_H
++#define __LINUX_SOC_EXYNOS_ASV_H
++
++enum {
++	EXYNOS_ASV_SUBSYS_ID_ARM,
++	EXYNOS_ASV_SUBSYS_ID_EGL = EXYNOS_ASV_SUBSYS_ID_ARM,
++	EXYNOS_ASV_SUBSYS_ID_KFC,
++	EXYNOS_ASV_SUBSYS_ID_INT,
++	EXYNOS_ASV_SUBSYS_ID_MIF,
++	EXYNOS_ASV_SUBSYS_ID_G3D,
++	EXYNOS_ASV_SUBSYS_ID_CAM,
++	EXYNOS_ASV_SUBSYS_ID_MAX
++};
++
++struct regmap;
++
++/* HPM, IDS values to select target group */
++struct asv_limit_entry {
++	unsigned int hpm;
++	unsigned int ids;
++};
++
++struct exynos_asv_table {
++	unsigned int num_rows;
++	unsigned int num_cols;
++	u32 *buf;
++};
++
++struct exynos_asv_subsys {
++	struct exynos_asv *asv;
++	const char *cpu_dt_compat;
++	int id;
++	struct exynos_asv_table table;
++
++	unsigned int base_volt;
++	unsigned int offset_volt_h;
++	unsigned int offset_volt_l;
++};
++
++struct exynos_asv {
++	struct device *dev;
++	struct regmap *chipid_regmap;
++	struct exynos_asv_subsys subsys[2];
++
++	int (*opp_get_voltage)(struct exynos_asv_subsys *subs, int level,
++			       unsigned int voltage);
++	unsigned int group;
++	unsigned int table;
++
++	/* True if SG fields from PKG_ID register should be used */
++	bool use_sg;
++	/* ASV bin read from DT */
++	int of_bin;
++};
++
++static inline u32 __asv_get_table_entry(struct exynos_asv_table *table,
++					unsigned int row, unsigned int col)
++{
++	return table->buf[row * (table->num_cols) + col];
++}
++
++static inline u32 exynos_asv_opp_get_voltage(struct exynos_asv_subsys *subsys,
++					unsigned int level, unsigned int group)
++{
++	return __asv_get_table_entry(&subsys->table, level, group + 1);
++}
++
++static inline u32 exynos_asv_opp_get_frequency(struct exynos_asv_subsys *subsys,
++					unsigned int level)
++{
++	return __asv_get_table_entry(&subsys->table, level, 0);
++}
++
++#endif /* __LINUX_SOC_EXYNOS_ASV_H */
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/soc/samsung/Kconfig ./drivers/soc/samsung/Kconfig
+--- ../ubuntu-eoan.orig/drivers/soc/samsung/Kconfig	2019-10-30 11:17:20.000000000 +1100
++++ ./drivers/soc/samsung/Kconfig	2019-11-13 18:22:18.176642377 +1100
+@@ -7,6 +7,16 @@
+ 
+ if SOC_SAMSUNG
+ 
++config EXYNOS_ASV
++       bool "Exynos Adaptive Supply Voltage support" if COMPILE_TEST
++       depends on (ARCH_EXYNOS && EXYNOS_CHIPID) || COMPILE_TEST
++       select EXYNOS_ASV_ARM if ARM && ARCH_EXYNOS
++
++# There is no need to enable these drivers for ARMv8
++config EXYNOS_ASV_ARM
++       bool "Exynos ASV ARMv7-specific driver extensions" if COMPILE_TEST
++       depends on EXYNOS_ASV
++
+ config EXYNOS_PMU
+ 	bool "Exynos PMU controller driver" if COMPILE_TEST
+ 	depends on ARCH_EXYNOS || ((ARM || ARM64) && COMPILE_TEST)
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/soc/samsung/Kconfig.orig ./drivers/soc/samsung/Kconfig.orig
+--- ../ubuntu-eoan.orig/drivers/soc/samsung/Kconfig.orig	1970-01-01 10:00:00.000000000 +1000
++++ ./drivers/soc/samsung/Kconfig.orig	2019-11-13 18:20:37.400281892 +1100
+@@ -0,0 +1,24 @@
++# SPDX-License-Identifier: GPL-2.0
++#
++# SAMSUNG SoC drivers
++#
++menuconfig SOC_SAMSUNG
++	bool "Samsung SoC driver support" if COMPILE_TEST
++
++if SOC_SAMSUNG
++
++config EXYNOS_PMU
++	bool "Exynos PMU controller driver" if COMPILE_TEST
++	depends on ARCH_EXYNOS || ((ARM || ARM64) && COMPILE_TEST)
++	select EXYNOS_PMU_ARM_DRIVERS if ARM && ARCH_EXYNOS
++
++# There is no need to enable these drivers for ARMv8
++config EXYNOS_PMU_ARM_DRIVERS
++	bool "Exynos PMU ARMv7-specific driver extensions" if COMPILE_TEST
++	depends on EXYNOS_PMU
++
++config EXYNOS_PM_DOMAINS
++	bool "Exynos PM domains" if COMPILE_TEST
++	depends on PM_GENERIC_DOMAINS || COMPILE_TEST
++
++endif
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/soc/samsung/Makefile ./drivers/soc/samsung/Makefile
+--- ../ubuntu-eoan.orig/drivers/soc/samsung/Makefile	2019-10-30 11:17:20.000000000 +1100
++++ ./drivers/soc/samsung/Makefile	2019-11-13 18:23:43.356940655 +1100
+@@ -1,4 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0
++obj-$(CONFIG_EXYNOS_ASV)       += exynos-asv.o
++obj-$(CONFIG_EXYNOS_ASV_ARM)   += exynos5422-asv.o
++
+ obj-$(CONFIG_EXYNOS_PMU)	+= exynos-pmu.o
+ 
+ obj-$(CONFIG_EXYNOS_PMU_ARM_DRIVERS)	+= exynos3250-pmu.o exynos4-pmu.o \
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/soc/samsung/Makefile.orig ./drivers/soc/samsung/Makefile.orig
+--- ../ubuntu-eoan.orig/drivers/soc/samsung/Makefile.orig	1970-01-01 10:00:00.000000000 +1000
++++ ./drivers/soc/samsung/Makefile.orig	2019-11-13 18:20:37.400281892 +1100
+@@ -0,0 +1,6 @@
++# SPDX-License-Identifier: GPL-2.0
++obj-$(CONFIG_EXYNOS_PMU)	+= exynos-pmu.o
++
++obj-$(CONFIG_EXYNOS_PMU_ARM_DRIVERS)	+= exynos3250-pmu.o exynos4-pmu.o \
++					exynos5250-pmu.o exynos5420-pmu.o
++obj-$(CONFIG_EXYNOS_PM_DOMAINS) += pm_domains.o
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/soc/samsung/Makefile.rej ./drivers/soc/samsung/Makefile.rej
+--- ../ubuntu-eoan.orig/drivers/soc/samsung/Makefile.rej	1970-01-01 10:00:00.000000000 +1000
++++ ./drivers/soc/samsung/Makefile.rej	2019-11-13 18:20:37.400281892 +1100
+@@ -0,0 +1,11 @@
++--- ../torvalds-linux/drivers/soc/samsung/Makefile	2019-11-04 09:07:26.000000000 +1100
+++++ drivers/soc/samsung/Makefile	2019-11-12 19:47:45.635130444 +1100
++@@ -1,5 +1,8 @@
++ # SPDX-License-Identifier: GPL-2.0
++ 
+++obj-$(CONFIG_EXYNOS_ASV)	+= exynos-asv.o
+++obj-$(CONFIG_EXYNOS_ASV_ARM)	+= exynos5422-asv.o
+++
++ obj-$(CONFIG_EXYNOS_CHIPID)	+= exynos-chipid.o
++ obj-$(CONFIG_EXYNOS_PMU)	+= exynos-pmu.o
++ 
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/thermal/of-thermal.c ./drivers/thermal/of-thermal.c
+--- ../ubuntu-eoan.orig/drivers/thermal/of-thermal.c	2019-10-30 11:17:20.000000000 +1100
++++ ./drivers/thermal/of-thermal.c	2019-11-13 18:20:37.400281892 +1100
+@@ -315,6 +315,20 @@
+ 	return 0;
+ }
+ 
++static int
++of_thermal_get_trip_irq_mode(struct thermal_zone_device *tz, int trip,
++			     bool *mode)
++{
++	struct __thermal_zone *data = tz->devdata;
++
++	if (trip >= data->ntrips || trip < 0)
++		return -EDOM;
++
++	*mode = data->trips[trip].irq_mode;
++
++	return 0;
++}
++
+ static int of_thermal_get_trip_temp(struct thermal_zone_device *tz, int trip,
+ 				    int *temp)
+ {
+@@ -397,6 +411,7 @@
+ 	.set_mode = of_thermal_set_mode,
+ 
+ 	.get_trip_type = of_thermal_get_trip_type,
++	.get_trip_irq_mode = of_thermal_get_trip_irq_mode,
+ 	.get_trip_temp = of_thermal_get_trip_temp,
+ 	.set_trip_temp = of_thermal_set_trip_temp,
+ 	.get_trip_hyst = of_thermal_get_trip_hyst,
+@@ -830,6 +845,8 @@
+ 		return ret;
+ 	}
+ 
++	trip->irq_mode = of_property_read_bool(np, "irq-mode");
++
+ 	/* Required for cooling map matching */
+ 	trip->np = np;
+ 	of_node_get(np);
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/thermal/samsung/exynos_tmu.c ./drivers/thermal/samsung/exynos_tmu.c
+--- ../ubuntu-eoan.orig/drivers/thermal/samsung/exynos_tmu.c	2019-10-30 11:17:20.000000000 +1100
++++ ./drivers/thermal/samsung/exynos_tmu.c	2019-11-13 18:20:37.404281907 +1100
+@@ -912,8 +912,6 @@
+ 	case SOC_ARCH_EXYNOS4412:
+ 	case SOC_ARCH_EXYNOS5250:
+ 	case SOC_ARCH_EXYNOS5260:
+-	case SOC_ARCH_EXYNOS5420:
+-	case SOC_ARCH_EXYNOS5420_TRIMINFO:
+ 		data->tmu_set_trip_temp = exynos4412_tmu_set_trip_temp;
+ 		data->tmu_set_trip_hyst = exynos4412_tmu_set_trip_hyst;
+ 		data->tmu_initialize = exynos4412_tmu_initialize;
+@@ -932,6 +930,22 @@
+ 			data->min_efuse_value = 0;
+ 		data->max_efuse_value = 100;
+ 		break;
++	case SOC_ARCH_EXYNOS5420:
++	case SOC_ARCH_EXYNOS5420_TRIMINFO:
++		data->tmu_set_trip_temp = exynos4412_tmu_set_trip_temp;
++		data->tmu_set_trip_hyst = exynos4412_tmu_set_trip_hyst;
++		data->tmu_initialize = exynos4412_tmu_initialize;
++		data->tmu_control = exynos4210_tmu_control;
++		data->tmu_read = exynos4412_tmu_read;
++		data->tmu_set_emulation = exynos4412_tmu_set_emulation;
++		data->tmu_clear_irqs = exynos4210_tmu_clear_irqs;
++		data->ntrip = 8;
++		data->gain = 8;
++		data->reference_voltage = 16;
++		data->efuse_value = 55;
++		data->min_efuse_value = 16;
++		data->max_efuse_value = 76;
++		break;
+ 	case SOC_ARCH_EXYNOS5433:
+ 		data->tmu_set_trip_temp = exynos5433_tmu_set_trip_temp;
+ 		data->tmu_set_trip_hyst = exynos5433_tmu_set_trip_hyst;
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/thermal/thermal_core.c ./drivers/thermal/thermal_core.c
+--- ../ubuntu-eoan.orig/drivers/thermal/thermal_core.c	2019-10-30 11:17:20.000000000 +1100
++++ ./drivers/thermal/thermal_core.c	2019-11-13 18:20:37.404281907 +1100
+@@ -412,6 +412,7 @@
+ static void handle_thermal_trip(struct thermal_zone_device *tz, int trip)
+ {
+ 	enum thermal_trip_type type;
++	bool irq_mode = false;
+ 
+ 	/* Ignore disabled trip points */
+ 	if (test_bit(trip, &tz->trips_disabled))
+@@ -425,9 +426,14 @@
+ 		handle_non_critical_trips(tz, trip);
+ 	/*
+ 	 * Alright, we handled this trip successfully.
+-	 * So, start monitoring again.
++	 * So, start monitoring in polling mode if
++	 * trip is not using irq HW support.
+ 	 */
+-	monitor_thermal_zone(tz);
++	if (tz->ops->get_trip_irq_mode)
++		tz->ops->get_trip_irq_mode(tz, trip, &irq_mode);
++
++	if (!irq_mode)
++		monitor_thermal_zone(tz);
+ }
+ 
+ static void update_temperature(struct thermal_zone_device *tz)
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/thermal/thermal_sysfs.c ./drivers/thermal/thermal_sysfs.c
+--- ../ubuntu-eoan.orig/drivers/thermal/thermal_sysfs.c	2019-10-30 11:17:20.000000000 +1100
++++ ./drivers/thermal/thermal_sysfs.c	2019-11-13 18:20:37.404281907 +1100
+@@ -21,6 +21,8 @@
+ 
+ #include "thermal_core.h"
+ 
++#define TRIP_ATTR_NUM 4
++
+ /* sys I/F for thermal zone */
+ 
+ static ssize_t
+@@ -167,6 +169,28 @@
+ }
+ 
+ static ssize_t
++trip_point_irq_mode_show(struct device *dev, struct device_attribute *attr,
++			 char *buf)
++{
++	struct thermal_zone_device *tz = to_thermal_zone(dev);
++	int trip, ret;
++	bool mode;
++
++	if (!tz->ops->get_trip_irq_mode)
++		return -EPERM;
++
++	if (sscanf(attr->attr.name, "trip_point_%d_irq", &trip) != 1)
++		return -EINVAL;
++
++	ret = tz->ops->get_trip_irq_mode(tz, trip, &mode);
++
++	if (ret)
++		return ret;
++
++	return sprintf(buf, "%d\n", mode);
++}
++
++static ssize_t
+ trip_point_hyst_store(struct device *dev, struct device_attribute *attr,
+ 		      const char *buf, size_t count)
+ {
+@@ -520,10 +544,19 @@
+ 	if (!tz->trip_type_attrs)
+ 		return -ENOMEM;
+ 
++	tz->trip_irq_mode_attrs = kcalloc(tz->trips,
++					  sizeof(*tz->trip_irq_mode_attrs),
++					  GFP_KERNEL);
++	if (!tz->trip_irq_mode_attrs) {
++		kfree(tz->trip_type_attrs);
++		return -ENOMEM;
++	}
++
+ 	tz->trip_temp_attrs = kcalloc(tz->trips, sizeof(*tz->trip_temp_attrs),
+ 				      GFP_KERNEL);
+ 	if (!tz->trip_temp_attrs) {
+ 		kfree(tz->trip_type_attrs);
++		kfree(tz->trip_irq_mode_attrs);
+ 		return -ENOMEM;
+ 	}
+ 
+@@ -533,14 +566,17 @@
+ 					      GFP_KERNEL);
+ 		if (!tz->trip_hyst_attrs) {
+ 			kfree(tz->trip_type_attrs);
++			kfree(tz->trip_irq_mode_attrs);
+ 			kfree(tz->trip_temp_attrs);
+ 			return -ENOMEM;
+ 		}
+ 	}
+ 
+-	attrs = kcalloc(tz->trips * 3 + 1, sizeof(*attrs), GFP_KERNEL);
++	attrs = kcalloc(tz->trips * TRIP_ATTR_NUM + 1, sizeof(*attrs),
++			GFP_KERNEL);
+ 	if (!attrs) {
+ 		kfree(tz->trip_type_attrs);
++		kfree(tz->trip_irq_mode_attrs);
+ 		kfree(tz->trip_temp_attrs);
+ 		if (tz->ops->get_trip_hyst)
+ 			kfree(tz->trip_hyst_attrs);
+@@ -559,6 +595,19 @@
+ 		tz->trip_type_attrs[indx].attr.show = trip_point_type_show;
+ 		attrs[indx] = &tz->trip_type_attrs[indx].attr.attr;
+ 
++		/* create trip irq_mode attribute */
++		snprintf(tz->trip_irq_mode_attrs[indx].name,
++			 THERMAL_NAME_LENGTH, "trip_point_%d_irq", indx);
++
++		sysfs_attr_init(&tz->trip_irq_mode_attrs[indx].attr.attr);
++		tz->trip_irq_mode_attrs[indx].attr.attr.name =
++			tz->trip_irq_mode_attrs[indx].name;
++		tz->trip_irq_mode_attrs[indx].attr.attr.mode = S_IRUGO;
++		tz->trip_irq_mode_attrs[indx].attr.show =
++			trip_point_irq_mode_show;
++		attrs[indx + tz->trips * 3] =
++			&tz->trip_irq_mode_attrs[indx].attr.attr;
++
+ 		/* create trip temp attribute */
+ 		snprintf(tz->trip_temp_attrs[indx].name, THERMAL_NAME_LENGTH,
+ 			 "trip_point_%d_temp", indx);
+@@ -595,7 +644,7 @@
+ 		attrs[indx + tz->trips * 2] =
+ 					&tz->trip_hyst_attrs[indx].attr.attr;
+ 	}
+-	attrs[tz->trips * 3] = NULL;
++	attrs[tz->trips * TRIP_ATTR_NUM] = NULL;
+ 
+ 	tz->trips_attribute_group.attrs = attrs;
+ 
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/drivers/video/Kconfig ./drivers/video/Kconfig
+--- ../ubuntu-eoan.orig/drivers/video/Kconfig	2019-10-30 11:17:20.000000000 +1100
++++ ./drivers/video/Kconfig	2019-11-13 18:20:37.404281907 +1100
+@@ -19,6 +19,8 @@
+ 
+ source "drivers/gpu/drm/Kconfig"
+ 
++source "drivers/gpu/arm/Kconfig"
++
+ menu "Frame buffer Devices"
+ source "drivers/video/fbdev/Kconfig"
+ endmenu
