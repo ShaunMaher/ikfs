@@ -190,8 +190,11 @@ mkdir -p "${chroot_dir}/tmp/ikfs/" || die "Failed to create a temporary director
 if [ -f "${script_dir}/signing_key.pem.gpg" ]; then
   echo "Decrypting and extracting the Linux kernel signing key into the chroot"
   echo "gpg --pinentry-mode $gpg_pin_entry -a --yes --output ${chroot_dir}/tmp/ikfs/signing_key.pem --decrypt signing_key.pem.gpg"
-  gpg --pinentry-mode $gpg_pin_entry -a --yes --output ${chroot_dir}/tmp/ikfs/signing_key.pem --decrypt signing_key.pem.gpg ||\
-    die "Unable to decrypt 'signing_key.pem.gpg'"
+  unlocked=1
+  while [ $unlocked -ne 0 ]; do
+    gpg --pinentry-mode $gpg_pin_entry -a --yes --output ${chroot_dir}/tmp/ikfs/signing_key.pem --decrypt signing_key.pem.gpg
+    unlocked=$?
+  done
 else
   echo "No Linux kernel signing key was found.  One will be automatically generated.  If you need a signed kernel and modules for Secure Boot, please review the README.md file for instructions for creating a static signing key."
 fi
@@ -229,6 +232,9 @@ chroot "${chroot_dir}/" /bin/bash /tmp/ikfs/ikfs-chroot \
 
 buildtime=$(( $(date +%s) - $ikfs_starttime ))
 echo "Total run time of build process: ${buildtime} seconds"
+
+echo "Taking a copy of the chroot with all the dependencies installed to speed up future builds."
+cp "${chroot_dir}/usr/src/build_environment.tgz" "${chroot_template_dir}/${chroot_template_name}"
 
 # Result is in "${chroot_dir}/usr/src/*.deb"
 this_repo_dir="${repository_dir}/${os_name}"

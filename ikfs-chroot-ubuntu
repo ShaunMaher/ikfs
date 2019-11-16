@@ -414,13 +414,15 @@ function build_extra_package_from_debian () {
 
 function saved_build_environment {
   echo "Creating an archive from this build environment, with the various dependencies installed, to speed up future builds..."
+  cd /
   tar -czf /usr/src/build_environment.tgz \
     --exclude=/dev \
     --exclude=/proc \
     --exclude=/sys \
     --exclude=/usr/src \
     --exclude=/etc/resolf.conf \
-    --exclude=/tmp/ikfs
+    --exclude=/tmp/ikfs \
+    .
   return $?
 }
 
@@ -452,16 +454,18 @@ configure_kernel || \
 
 saved_build_environment || \
   warn "[WARN] Failed to create a copy of the build chroot for use as an updated template"
-# die
-# rm /etc/resolv.conf
-# rm -fr /tmp/ikfs*
-# rm -fr /usr/src/*
+
+echo "Clone this dataset and replace the template."
+die
+rm /etc/resolv.conf
+rm -fr /tmp/ikfs*
+rm -fr /usr/src/*
 
 build_kernel_package || \
   die "[ERROR] Failed to build the kernel.  Cannot continue."
 
-echo "Starting a shell.  You want to find and capture Image.gz"
-bash -i
+#echo "Starting a shell.  You want to find and capture Image.gz"
+#bash -i
 
 #install_kernel_packages || \
 #  die "[ERROR] Failed to install the built kernel packages.  Cannot continue."

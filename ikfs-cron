@@ -2,22 +2,47 @@
 
 script_dir=$(dirname $(readlink -f "${0}"))
 log_dir=${script_dir}
+retry_failed_build=0
 
 source "ikfs.conf"
 
+while getopts ":r-:" opt; do
+  case "${opt}" in
+    -)
+      case "${OPTARG}" in
+        retry)
+          retry_failed_build=1
+          ;;
+        *)
+          if [ "$OPTERR" = 1 ] && [ "${optspec:0:1}" != ":" ]; then
+            echo "Unknown option -${OPTARG}" >&2
+          fi
+          ;;
+      esac
+      ;;
+    r)
+      retry_failed_build=1
+      ;;
+    *)
+      echo "Unknown option -${opt}" >&2
+      ;;
+  esac
+done
+
 for build in $(seq 0 $(( ${#build_arch[@]} - 1 )) ); do
-  echo "Processing ${build_os_name[$build]} / ${build_arch[$build]} / ${build_kernel_name_suffix[$build]}"
+  echo "Processing ${build_os_name[$build]} / ${build_kernel_codename[$build]} / ${build_arch[$build]} / ${build_kernel_name_suffix[$build]}"
   if [ "${build_os_name[$build]}" = "ubuntu" ]; then
     git_url="git://kernel.ubuntu.com/ubuntu/${build_os_name[$build]}-${build_kernel_codename[$build]}.git"
   fi
 
   if [ -f "${log_dir}/build-results.txt" ]; then
-    last_build_commit=$(
+    last_build_line=$(
       cat "${log_dir}/build-results.txt" |\
-      grep "${build_os_name[$build]}|${build_arch[$build]}|${build_kernel_name_suffix[$build]}" |\
-      tail -1 |\
-      awk 'BEGIN{FS="|"}{print $4}' \
+      grep "${build_os_name[$build]}|${build_kernel_codename[$build]}|${build_arch[$build]}|${build_kernel_name_suffix[$build]}" |\
+      tail -1 \
     )
+    last_build_commit=$(echo "${last_build_line}" | awk 'BEGIN{FS="|"}{print $5}')
+    last_build_result=$(echo "${last_build_line}" | awk 'BEGIN{FS="|"}{print $6}')
   fi
 
   last_git_commit=$(
@@ -26,19 +51,28 @@ for build in $(seq 0 $(( ${#build_arch[@]} - 1 )) ); do
     awk '{print $1}' \
   )
   echo -e "\tLast upstream commit:\t'${last_git_commit}'."
-  echo -e "\tLast build commit:\t'${last_build_commit}'"
+  echo -e "\tLast built commit:\t'${last_build_commit}'"
+  echo -e "\tLast built result:\t'${last_build_result}'"
   if [ "${last_git_commit}" = "${last_build_commit}" ]; then
-    echo -e "\tThe current upstream version has already been built."
-    continue
+    if [ ${last_build_result} -ne 0 ] && [ $retry_failed_build -ne 0 ]; then
+      echo -e "\tThe current upstream version has tried to be built but failed.  Will retry."
+    else
+      echo -e "\tThe current upstream version has already been built."
+      continue
+    fi
   fi
 
-  log_file="${log_dir}/${build_os_name[$build]}_${build_arch[$build]}_${build_kernel_name_suffix[$build]}_${last_git_commit}.log"
-  ./ikfs \
-    --kernel-name-suffix="${build_kernel_name_suffix[$build]}" \
-    --kernel-builders-name="${kernel_builders_name}" \
-    --kernel-codename=${build_kernel_codename[$build]} \
-    --kernel-git-branch=${build_kernel_branch[$build]} \
-    --arch="${build_arch[$build]}" \
-    2>&1 | tee "${log_file}"
-  echo "${build_os_name[$build]}|${build_arch[$build]}|${build_kernel_name_suffix[$build]}|${last_git_commit}|$?" >>"${log_dir}/build-results.txt"
+  log_file="${log_dir}/${build_os_name[$build]}_${build_kernel_codename[$build]}_${build_arch[$build]}_${build_kernel_name_suffix[$build]}_${last_git_commit}.log"
+  (
+    ./ikfs \
+      --kernel-name-suffix="${build_kernel_name_suffix[$build]}" \
+      --kernel-builders-name="${kernel_builders_name}" \
+      --kernel-codename=${build_kernel_codename[$build]} \
+      --kernel-git-branch=${build_kernel_branch[$build]} \
+      --arch="${build_arch[$build]}" \
+      2>&1;
+    echo $? >"${log_file}.exitcode"
+  ) | tee "${log_file}"
+  exit_code=$(cat "${log_file}.exitcode")
+  echo "${build_os_name[$build]}|${build_kernel_codename[$build]}|${build_arch[$build]}|${build_kernel_name_suffix[$build]}|${last_git_commit}|${exit_code}" >>"${log_dir}/build-results.txt"
 done

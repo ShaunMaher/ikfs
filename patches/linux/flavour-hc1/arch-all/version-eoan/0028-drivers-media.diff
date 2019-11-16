@@ -1,0 +1,280 @@
+diff -ruN '--exclude=*git*' '--exclude=*dtc*' '--exclude=*.orig' ../ubuntu-eoan.orig/drivers/media/common/videobuf2/videobuf2-dma-contig.c ./drivers/media/common/videobuf2/videobuf2-dma-contig.c
+--- ../ubuntu-eoan.orig/drivers/media/common/videobuf2/videobuf2-dma-contig.c	2019-11-14 19:59:20.000000000 +1100
++++ ./drivers/media/common/videobuf2/videobuf2-dma-contig.c	2019-11-16 17:42:34.525278977 +1100
+@@ -62,6 +62,28 @@
+ 	return size;
+ }
+ 
++static struct sg_table *vb2_dc_get_base_sgt(struct vb2_dc_buf *buf)
++{
++	int ret;
++	struct sg_table *sgt;
++
++	sgt = kmalloc(sizeof(*sgt), GFP_KERNEL);
++	if (!sgt) {
++		dev_err(buf->dev, "failed to alloc sg table\n");
++		return NULL;
++	}
++
++	ret = dma_get_sgtable_attrs(buf->dev, sgt, buf->cookie, buf->dma_addr,
++		buf->size, buf->attrs);
++	if (ret < 0) {
++		dev_err(buf->dev, "failed to get scatterlist from DMA API\n");
++		kfree(sgt);
++		return NULL;
++	}
++
++	return sgt;
++}
++
+ /*********************************************/
+ /*         callbacks for all buffers         */
+ /*********************************************/
+@@ -130,6 +152,10 @@
+ 		sg_free_table(buf->sgt_base);
+ 		kfree(buf->sgt_base);
+ 	}
++	if (buf->dma_sgt) {
++		sg_free_table(buf->dma_sgt);
++		kfree(buf->dma_sgt);
++	}
+ 	dma_free_attrs(buf->dev, buf->size, buf->cookie, buf->dma_addr,
+ 		       buf->attrs);
+ 	put_device(buf->dev);
+@@ -171,6 +197,14 @@
+ 	buf->handler.put = vb2_dc_put;
+ 	buf->handler.arg = buf;
+ 
++	/*
++	 * Enable cache maintenance. Even if userspace doesn't mmap the buffer,
++	 * sync still should be happening if kernel mapping is present.
++	 */
++	if (!(buf->attrs & DMA_ATTR_NO_KERNEL_MAPPING) &&
++	    buf->attrs & DMA_ATTR_NON_CONSISTENT)
++		buf->dma_sgt = vb2_dc_get_base_sgt(buf);
++
+ 	refcount_set(&buf->refcount, 1);
+ 
+ 	return buf;
+@@ -200,6 +234,10 @@
+ 
+ 	vma->vm_ops->open(vma);
+ 
++	/* Enable cache maintenance if not enabled in allocation. */
++	if (!buf->dma_sgt && buf->attrs & DMA_ATTR_NON_CONSISTENT)
++		buf->dma_sgt = vb2_dc_get_base_sgt(buf);
++
+ 	pr_debug("%s: mapped dma addr 0x%08lx at 0x%08lx, size %ld\n",
+ 		__func__, (unsigned long)buf->dma_addr, vma->vm_start,
+ 		buf->size);
+@@ -357,28 +395,6 @@
+ 	.release = vb2_dc_dmabuf_ops_release,
+ };
+ 
+-static struct sg_table *vb2_dc_get_base_sgt(struct vb2_dc_buf *buf)
+-{
+-	int ret;
+-	struct sg_table *sgt;
+-
+-	sgt = kmalloc(sizeof(*sgt), GFP_KERNEL);
+-	if (!sgt) {
+-		dev_err(buf->dev, "failed to alloc sg table\n");
+-		return NULL;
+-	}
+-
+-	ret = dma_get_sgtable_attrs(buf->dev, sgt, buf->cookie, buf->dma_addr,
+-		buf->size, buf->attrs);
+-	if (ret < 0) {
+-		dev_err(buf->dev, "failed to get scatterlist from DMA API\n");
+-		kfree(sgt);
+-		return NULL;
+-	}
+-
+-	return sgt;
+-}
+-
+ static struct dma_buf *vb2_dc_get_dmabuf(void *buf_priv, unsigned long flags)
+ {
+ 	struct vb2_dc_buf *buf = buf_priv;
+diff -ruN '--exclude=*git*' '--exclude=*dtc*' '--exclude=*.orig' ../ubuntu-eoan.orig/drivers/media/platform/exynos-gsc/gsc-core.h ./drivers/media/platform/exynos-gsc/gsc-core.h
+--- ../ubuntu-eoan.orig/drivers/media/platform/exynos-gsc/gsc-core.h	2019-11-14 19:59:21.000000000 +1100
++++ ./drivers/media/platform/exynos-gsc/gsc-core.h	2019-11-16 17:42:34.525278977 +1100
+@@ -476,9 +476,9 @@
+ {
+ 	struct gsc_frame *frame;
+ 
+-	if (V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE == type) {
++	if (V4L2_BUF_TYPE_VIDEO_OUTPUT == type || V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE == type) {
+ 		frame = &ctx->s_frame;
+-	} else if (V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE == type) {
++	} else if (V4L2_BUF_TYPE_VIDEO_CAPTURE == type || V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE == type) {
+ 		frame = &ctx->d_frame;
+ 	} else {
+ 		pr_err("Wrong buffer/video queue type (%d)", type);
+diff -ruN '--exclude=*git*' '--exclude=*dtc*' '--exclude=*.orig' ../ubuntu-eoan.orig/drivers/media/platform/s5p-jpeg/jpeg-core.c ./drivers/media/platform/s5p-jpeg/jpeg-core.c
+--- ../ubuntu-eoan.orig/drivers/media/platform/s5p-jpeg/jpeg-core.c	2019-11-14 19:59:21.000000000 +1100
++++ ./drivers/media/platform/s5p-jpeg/jpeg-core.c	2019-11-16 17:42:34.525278977 +1100
+@@ -1827,6 +1827,31 @@
+  * V4L2 controls
+  */
+ 
++static int vidioc_decoder_cmd(struct file *file, void *priv,
++			struct v4l2_decoder_cmd *cmd)
++{
++	struct s5p_jpeg_ctx *ctx = fh_to_ctx(priv);
++	struct vb2_queue *vq_src = v4l2_m2m_get_vq(ctx->fh.m2m_ctx, V4L2_BUF_TYPE_VIDEO_OUTPUT);
++	struct vb2_v4l2_buffer *buf;
++
++	switch (cmd->cmd) {
++	case V4L2_DEC_CMD_STOP:
++		if (cmd->flags != 0)
++			return -EINVAL;
++		if (!vb2_is_streaming(vq_src))
++			return -EINVAL;
++
++		buf = v4l2_m2m_last_src_buf(ctx->fh.m2m_ctx);
++		buf->flags |= V4L2_BUF_FLAG_LAST;
++
++		break;
++	default:
++		return -EINVAL;
++	}
++
++	return 0;
++}
++
+ static int s5p_jpeg_g_selection(struct file *file, void *priv,
+ 			 struct v4l2_selection *s)
+ {
+@@ -1861,9 +1886,6 @@
+ 	return 0;
+ }
+ 
+-/*
+- * V4L2 controls
+- */
+ static int s5p_jpeg_s_selection(struct file *file, void *fh,
+ 				  struct v4l2_selection *s)
+ {
+@@ -2055,6 +2077,8 @@
+ 	.vidioc_streamon		= v4l2_m2m_ioctl_streamon,
+ 	.vidioc_streamoff		= v4l2_m2m_ioctl_streamoff,
+ 
++	.vidioc_decoder_cmd             = vidioc_decoder_cmd,
++
+ 	.vidioc_g_selection		= s5p_jpeg_g_selection,
+ 	.vidioc_s_selection		= s5p_jpeg_s_selection,
+ 
+@@ -2501,13 +2525,6 @@
+ 
+ 	size = q_data->size;
+ 
+-	/*
+-	 * header is parsed during decoding and parsed information stored
+-	 * in the context so we do not allow another buffer to overwrite it
+-	 */
+-	if (ctx->mode == S5P_JPEG_DECODE)
+-		count = 1;
+-
+ 	*nbuffers = count;
+ 	*nplanes = 1;
+ 	sizes[0] = size;
+@@ -2618,6 +2635,7 @@
+ static void s5p_jpeg_stop_streaming(struct vb2_queue *q)
+ {
+ 	struct s5p_jpeg_ctx *ctx = vb2_get_drv_priv(q);
++	struct vb2_v4l2_buffer *buf;
+ 
+ 	/*
+ 	 * STREAMOFF is an acknowledgment for resolution change event.
+@@ -2630,6 +2648,11 @@
+ 		ctx->state = JPEGCTX_RUNNING;
+ 	}
+ 
++	while ((buf = v4l2_m2m_src_buf_remove(ctx->fh.m2m_ctx)))
++		v4l2_m2m_buf_done(buf, VB2_BUF_STATE_ERROR);
++	while ((buf = v4l2_m2m_dst_buf_remove(ctx->fh.m2m_ctx)))
++		v4l2_m2m_buf_done(buf, VB2_BUF_STATE_ERROR);
++
+ 	pm_runtime_put(ctx->jpeg->dev);
+ }
+ 
+@@ -2869,6 +2892,8 @@
+ 	v4l2_m2m_buf_done(src_buf, state);
+ 	if (curr_ctx->mode == S5P_JPEG_ENCODE)
+ 		vb2_set_plane_payload(&dst_buf->vb2_buf, 0, payload_size);
++	if (src_buf->flags & V4L2_BUF_FLAG_LAST)
++		dst_buf->flags |= V4L2_BUF_FLAG_LAST;
+ 	v4l2_m2m_buf_done(dst_buf, state);
+ 
+ 	curr_ctx->subsampling =
+diff -ruN '--exclude=*git*' '--exclude=*dtc*' '--exclude=*.orig' ../ubuntu-eoan.orig/drivers/media/platform/s5p-mfc/s5p_mfc.c ./drivers/media/platform/s5p-mfc/s5p_mfc.c
+--- ../ubuntu-eoan.orig/drivers/media/platform/s5p-mfc/s5p_mfc.c	2019-11-14 19:59:21.000000000 +1100
++++ ./drivers/media/platform/s5p-mfc/s5p_mfc.c	2019-11-16 17:42:34.529278962 +1100
+@@ -858,7 +858,7 @@
+ 	 * We'll do mostly sequential access, so sacrifice TLB efficiency for
+ 	 * faster allocation.
+ 	 */
+-	q->dma_attrs = DMA_ATTR_ALLOC_SINGLE_PAGES;
++	q->dma_attrs = DMA_ATTR_ALLOC_SINGLE_PAGES | DMA_ATTR_NON_CONSISTENT | DMA_ATTR_NO_KERNEL_MAPPING;
+ 	q->mem_ops = &vb2_dma_contig_memops;
+ 	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
+ 	ret = vb2_queue_init(q);
+@@ -893,7 +893,7 @@
+ 	 * We'll do mostly sequential access, so sacrifice TLB efficiency for
+ 	 * faster allocation.
+ 	 */
+-	q->dma_attrs = DMA_ATTR_ALLOC_SINGLE_PAGES;
++	q->dma_attrs = DMA_ATTR_ALLOC_SINGLE_PAGES | DMA_ATTR_NON_CONSISTENT | DMA_ATTR_NO_KERNEL_MAPPING;
+ 	q->mem_ops = &vb2_dma_contig_memops;
+ 	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
+ 	ret = vb2_queue_init(q);
+@@ -941,6 +941,11 @@
+ 	mfc_debug_enter();
+ 	if (dev)
+ 		mutex_lock(&dev->mfc_mutex);
++
++	/* stop streaming */
++	vb2_streamoff(&ctx->vq_src, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
++	vb2_streamoff(&ctx->vq_dst, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
++
+ 	vb2_queue_release(&ctx->vq_src);
+ 	vb2_queue_release(&ctx->vq_dst);
+ 	if (dev) {
+diff -ruN '--exclude=*git*' '--exclude=*dtc*' '--exclude=*.orig' ../ubuntu-eoan.orig/drivers/media/platform/s5p-mfc/s5p_mfc_enc.c ./drivers/media/platform/s5p-mfc/s5p_mfc_enc.c
+--- ../ubuntu-eoan.orig/drivers/media/platform/s5p-mfc/s5p_mfc_enc.c	2019-11-14 19:59:21.000000000 +1100
++++ ./drivers/media/platform/s5p-mfc/s5p_mfc_enc.c	2019-11-16 17:42:34.529278962 +1100
+@@ -1216,6 +1216,7 @@
+ {
+ 	struct s5p_mfc_dev *dev = ctx->dev;
+ 	struct s5p_mfc_buf *mb_entry;
++	struct s5p_mfc_buf *dst_buf;
+ 	unsigned long enc_y_addr = 0, enc_c_addr = 0;
+ 	unsigned long mb_y_addr, mb_c_addr;
+ 	int slice_type;
+@@ -1235,8 +1236,12 @@
+ 					&mb_entry->b->vb2_buf, 0);
+ 			mb_c_addr = vb2_dma_contig_plane_dma_addr(
+ 					&mb_entry->b->vb2_buf, 1);
++			dst_buf = list_entry(ctx->dst_queue.next,
++					struct s5p_mfc_buf, list);
+ 			if ((enc_y_addr == mb_y_addr) &&
+ 						(enc_c_addr == mb_c_addr)) {
++				dst_buf->b->timecode = mb_entry->b->timecode;
++				dst_buf->b->vb2_buf.timestamp = mb_entry->b->vb2_buf.timestamp;
+ 				list_del(&mb_entry->list);
+ 				ctx->src_queue_cnt--;
+ 				vb2_buffer_done(&mb_entry->b->vb2_buf,
+@@ -1249,8 +1254,12 @@
+ 					&mb_entry->b->vb2_buf, 0);
+ 			mb_c_addr = vb2_dma_contig_plane_dma_addr(
+ 					&mb_entry->b->vb2_buf, 1);
++			dst_buf = list_entry(ctx->dst_queue.next,
++					struct s5p_mfc_buf, list);
+ 			if ((enc_y_addr == mb_y_addr) &&
+ 						(enc_c_addr == mb_c_addr)) {
++				dst_buf->b->timecode = mb_entry->b->timecode;
++				dst_buf->b->vb2_buf.timestamp = mb_entry->b->vb2_buf.timestamp;
+ 				list_del(&mb_entry->list);
+ 				ctx->ref_queue_cnt--;
+ 				vb2_buffer_done(&mb_entry->b->vb2_buf,
