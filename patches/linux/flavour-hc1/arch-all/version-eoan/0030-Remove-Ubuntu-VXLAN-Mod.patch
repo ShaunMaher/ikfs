@@ -1,0 +1,24 @@
+diff -ruN '--exclude=*git*' '--exclude=*dtc*' '--exclude=*.orig' '--exclude=*.rej' ../ubuntu-eoan.orig/drivers/net/vxlan.c ./drivers/net/vxlan.c
+--- ../ubuntu-eoan.orig/drivers/net/vxlan.c	2019-11-14 19:59:22.000000000 +1100
++++ ./drivers/net/vxlan.c	2019-11-23 18:56:54.582916443 +1100
+@@ -2837,20 +2837,6 @@
+ #endif
+ 	}
+ 
+-	if (fan_has_map(&vxlan->fan)) {
+-		struct vxlan_rdst fan_rdst;
+-
+-		netdev_dbg(vxlan->dev, "vxlan_xmit p %x d %pM\n",
+-			   eth->h_proto, eth->h_dest);
+-		if (vxlan_fan_build_rdst(vxlan, skb, &fan_rdst)) {
+-			dev->stats.tx_dropped++;
+-			kfree_skb(skb);
+-			return NETDEV_TX_OK;
+-		}
+-		vxlan_xmit_one(skb, dev, vni, &fan_rdst, 0);
+-		return NETDEV_TX_OK;
+-	}
+-
+ 	eth = eth_hdr(skb);
+ 	f = vxlan_find_mac(vxlan, eth->h_dest, vni);
+ 	did_rsc = false;

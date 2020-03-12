@@ -90,13 +90,15 @@ function apply_local_patches () {
       find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-${os_cpu}/version-${kernel_codename}" -mindepth 1 2>/dev/null ; \
       find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-${os_cpu}/${kernel_version}/" -mindepth 1 2>/dev/null ; \
       find "${script_dir}/patches/linux/flavour-${kernel_name_suffix}/arch-${os_cpu}/${kernel_version_major}.${kernel_version_minor}/" -mindepth 1 2>/dev/null \
-    ) | grep -v -i "\.disabled$" | sort \
+    ) | grep -i "\.patch$" | sort \
   )
   cd "${kernel_src_dir}"
   for patch in "${patches[@]}"; do
     echo "Applying local kernel patch: '${patch}'"
     #compgen -v
     echo "zfs_version: '${zfs_version}'"
+    echo "abi_version: '${abi_version}'"
+    echo "prev_abi_version: '${prev_abi_version}'"
     # Some of the patches have version numbers that we need to sub in
     sed -i "s/{abi_version}/${abi_version}/g" ${patch}
     sed -i "s/{prev_abi_version}/${prev_abi_version}/g" ${patch}

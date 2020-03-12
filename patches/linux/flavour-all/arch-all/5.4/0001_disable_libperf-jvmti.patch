@@ -1,0 +1,60 @@
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/debian.master/rules.d/amd64.mk ./debian.master/rules.d/amd64.mk
+--- ../ubuntu-eoan.orig/debian.master/rules.d/amd64.mk	2019-09-18 17:56:00.000000000 +1000
++++ ./debian.master/rules.d/amd64.mk	2019-09-19 11:51:15.351865524 +1000
+@@ -13,7 +13,7 @@
+ do_tools_usbip  = true
+ do_tools_cpupower = true
+ do_tools_perf   = true
+-do_tools_perf_jvmti = true
++do_tools_perf_jvmti = false
+ do_tools_bpftool = true
+ do_tools_x86	= true
+ do_tools_hyperv	= true
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/debian.master/rules.d/arm64.mk ./debian.master/rules.d/arm64.mk
+--- ../ubuntu-eoan.orig/debian.master/rules.d/arm64.mk	2019-09-18 17:56:00.000000000 +1000
++++ ./debian.master/rules.d/arm64.mk	2019-09-19 11:51:28.847848926 +1000
+@@ -16,7 +16,7 @@
+ do_tools_usbip  = true
+ do_tools_cpupower = true
+ do_tools_perf   = true
+-do_tools_perf_jvmti = true
++do_tools_perf_jvmti = false
+ do_tools_bpftool = true
+ 
+ do_dtbs		= true
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/debian.master/rules.d/armhf.mk ./debian.master/rules.d/armhf.mk
+--- ../ubuntu-eoan.orig/debian.master/rules.d/armhf.mk	2019-09-18 17:56:00.000000000 +1000
++++ ./debian.master/rules.d/armhf.mk	2019-09-19 11:51:41.887833137 +1000
+@@ -13,7 +13,7 @@
+ do_tools_usbip  = true
+ do_tools_cpupower = true
+ do_tools_perf	= true
+-do_tools_perf_jvmti = true
++do_tools_perf_jvmti = false
+ do_tools_bpftool = true
+ 
+ do_dtbs		= true
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/debian.master/rules.d/ppc64el.mk ./debian.master/rules.d/ppc64el.mk
+--- ../ubuntu-eoan.orig/debian.master/rules.d/ppc64el.mk	2019-09-18 17:56:00.000000000 +1000
++++ ./debian.master/rules.d/ppc64el.mk	2019-09-19 11:52:13.183796210 +1000
+@@ -14,7 +14,7 @@
+ do_tools_usbip    = true
+ do_tools_cpupower = true
+ do_tools_perf	  = true
+-do_tools_perf_jvmti = true
++do_tools_perf_jvmti = false
+ do_tools_bpftool  = true
+ 
+ #do_flavour_image_package = false
+diff -ruN '--exclude=*git*' ../ubuntu-eoan.orig/debian.master/rules.d/s390x.mk ./debian.master/rules.d/s390x.mk
+--- ../ubuntu-eoan.orig/debian.master/rules.d/s390x.mk	2019-09-18 17:56:00.000000000 +1000
++++ ./debian.master/rules.d/s390x.mk	2019-09-19 11:52:36.663769359 +1000
+@@ -15,7 +15,7 @@
+ do_tools_usbip    = true
+ do_tools_cpupower = true
+ do_tools_perf     = true
+-do_tools_perf_jvmti = true
++do_tools_perf_jvmti = false
+ do_tools_bpftool  = true
+ 
+ do_zfs		= true

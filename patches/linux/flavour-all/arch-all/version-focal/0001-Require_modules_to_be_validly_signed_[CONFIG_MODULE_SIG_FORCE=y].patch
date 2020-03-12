@@ -1,0 +1,12 @@
+diff -ruN '--exclude=*git*' '--exclude=*dtc*' '--exclude=*.orig' '--exclude=*.rej' ../ubuntu-focal.orig/debian.master/config/config.common.ubuntu ./debian.master/config/config.common.ubuntu
+--- ../ubuntu-focal.orig/debian.master/config/config.common.ubuntu	2020-03-09 20:01:27.000000000 +1100
++++ ./debian.master/config/config.common.ubuntu	2020-03-09 20:13:33.125156500 +1100
+@@ -5793,7 +5793,7 @@
+ # CONFIG_MODULE_FORCE_UNLOAD is not set
+ CONFIG_MODULE_SIG=y
+ CONFIG_MODULE_SIG_ALL=y
+-# CONFIG_MODULE_SIG_FORCE is not set
++CONFIG_MODULE_SIG_FORCE=y
+ CONFIG_MODULE_SIG_FORMAT=y
+ CONFIG_MODULE_SIG_HASH="sha512"
+ CONFIG_MODULE_SIG_KEY="certs/signing_key.pem"

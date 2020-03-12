@@ -234,7 +234,16 @@ buildtime=$(( $(date +%s) - $ikfs_starttime ))
 echo "Total run time of build process: ${buildtime} seconds"
 
 echo "Taking a copy of the chroot with all the dependencies installed to speed up future builds."
-cp "${chroot_dir}/usr/src/build_environment.tgz" "${chroot_template_dir}/${chroot_template_name}"
+tar \
+  -C "${chroot_dir}" \
+  -cvzf "${chroot_template_dir}/${chroot_template_name}.new"\
+  --exclude="*/dev*" \
+  --exclude="*/proc*" \
+  --exclude="*/sys*" \
+  --exclude="*/usr/src*" \
+  --exclude="*/etc/resolf.conf*" \
+  --exclude="*/tmp/ikfs*" \
+  .
 
 # Result is in "${chroot_dir}/usr/src/*.deb"
 this_repo_dir="${repository_dir}/${os_name}"
