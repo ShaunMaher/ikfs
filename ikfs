@@ -246,7 +246,7 @@ tar \
   .
 
 # Result is in "${chroot_dir}/usr/src/*.deb"
-this_repo_dir="${repository_dir}/${os_name}"
+this_repo_dir="${repository_dir}/${os_name}/${os_cpu}"
 if [ -f "${script_dir}/ikfs-repo-${os_name}" ]; then
   echo "Calling on script 'ikfs-repo-${os_name}' to update the local repository"
   source "${script_dir}/ikfs-repo-${os_name}"

@@ -11,7 +11,7 @@ os_cpu="${os_cpu:-$(uname -p)}"
 build_cpu="${build_cpu:-$(uname -p)}"
 os_codename="${os_codename:-$(lsb_release -c | awk '{print $2}')}"
 os_release="${os_release:-$(lsb_release -r | awk '{print $2}')}"
-build_depends="equivs dkms wget kmod libelf-dev kernel-wedge rsync gawk debhelper git locales dh-systemd libnewt-dev libiberty-dev libdw-dev pkg-config libunwind8-dev liblzma-dev openssl libaudit-dev python-dev libudev-dev autoconf automake uuid-dev binutils-dev libnuma-dev xmlto docbook-utils ghostscript fig2dev bzip2 sharutils asciidoc python-sphinx python-sphinx-rtd-theme dh-autoreconf tzdata python3-distutils python3-lib2to3 liblz4-tool ${build_depends}"
+build_depends="equivs dkms wget kmod libelf-dev kernel-wedge rsync gawk debhelper git locales dh-systemd libnewt-dev libiberty-dev libdw-dev pkg-config libunwind8-dev liblzma-dev openssl libaudit-dev python-dev libudev-dev autoconf automake uuid-dev binutils-dev libnuma-dev xmlto docbook-utils ghostscript fig2dev bzip2 sharutils asciidoc python-sphinx python-sphinx-rtd-theme dh-autoreconf tzdata python3-distutils python3-lib2to3 liblz4-tool u-boot-tools ${build_depends}"
 kernel_git_branch="${kernel_git_branch:-master}"
 kernel_src_dir=/usr/src/linux
 kernel_name_suffix="${kernel_name_suffix:-generic}"
@@ -92,6 +92,8 @@ function configure_kernel () {
   dch -b --changelog debian.master/changelog --newversion "${abi_version}" --distribution "${os_codename}"  --noquery "Personal build with modifications from upstream"
 
   # Change "generic" to something more personal
+  #TODO: The raspi2 branch in Ubuntu's kernel git repo has an additional folder
+  #  called "debian.raspi2" that we would need to detect to support this branch
   if [ ! "${kernel_name_suffix}" = "generic" ]; then
     echo "Creating a new kernel flavour called '${kernel_name_suffix}'"
     if [ ! -e "debian.master/config/${os_cpu_alt_name}/config.flavour.${kernel_name_suffix}" ]; then
@@ -105,6 +107,11 @@ function configure_kernel () {
     #TODO: debian.master/config/annotations - Then remove the patch
     sed -i "s/-generic':/-${kernel_name_suffix}':/g" "debian.master/config/annotations"
     #  patches/linux/flavour-all/arch-aarch64/version-disco/0001_LSM_annotations_for_custom_flavour.patch
+
+    # Per-arch/flavour kernel image name override
+    grep '_generic' debian.master/rules.d/arm64.mk | \
+      sed "s/\(.*\)_generic\(.*\)\$/\1_${kernel_name_suffix}\2/g" | \
+      tee -a debian.master/rules.d/arm64.mk
 
     readarray -t files < <(find "debian.master/abi/${prev_abi_version}/${os_cpu_alt_name}/" -mindepth 1 -maxdepth 1 -type f | grep 'generic')
     for file in "${files[@]}"; do
